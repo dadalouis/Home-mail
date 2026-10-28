@@ -81,7 +81,7 @@ async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
                        "unread": (e.runtime_data.data or {}).get("unread", 0)}
     if s["default"] not in accounts:
         s["default"] = next(iter(accounts), "")
-    return {**s, "accounts": accounts, "is_admin": user.is_admin}
+    return {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or ""}
 
 
 def _err(err: Exception) -> str:

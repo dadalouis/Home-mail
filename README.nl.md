@@ -69,6 +69,20 @@ De meeste andere providers (eigen domein, mail van je internetprovider) werken m
 - **Web-push naar de beginscherm-app**: stel de Home Assistant-integratie [HTML5 push](https://www.home-assistant.io/integrations/html5/) in; de web-app toont dan een knop "Meldingen aan" en een rood getal met het aantal ongelezen mails.
 - **Eigen automations**: trigger op het event `homemail_new_mail`.
 
+## Meerdere gebruikers, aparte postbussen
+
+Iedereen in je huishouden kan eigen postbussen hebben, binnen dezelfde Home-mail-installatie en met hetzelfde app-adres.
+
+1. Maak voor iedereen een eigen Home Assistant-gebruiker (Instellingen → Personen → Gebruikers).
+2. Voeg elk mailaccount toe als eigen Home-mail-item (Instellingen → Apparaten en diensten → Home-mail → **Item toevoegen**).
+3. Open de opties van een account en kies bij **Gebruikers die dit account mogen gebruiken** wie het mag gebruiken. Laat je het leeg, dan mogen alleen beheerders het gebruiken.
+4. Iedereen opent hetzelfde app-adres en logt in met het eigen Home Assistant-account. Je ziet alleen de postbussen waar je toegang toe hebt; de rest verschijnt helemaal niet.
+
+Goed om te weten:
+- Een account kan met meerdere gebruikers gedeeld worden en een gebruiker kan meerdere accounts hebben.
+- Zodra je gebruikers voor een account kiest, hebben alleen zij toegang. Beheerders worden niet automatisch toegevoegd, dus kies jezelf er ook bij als je het account zelf wilt gebruiken.
+- Persoonlijke instellingen (standaardaccount, blind kopie naar mezelf, afbeeldingen laden) gelden per gebruiker. Handtekening en kleur horen bij het account. Nieuwe berichten krijgen een standaardafsluiting met de naam van de ingelogde Home Assistant-gebruiker, tot je zelf een handtekening instelt.
+
 ## Toegang van buitenaf
 
 Home-mail gebruikt je gewone Home Assistant-adres en -login, dus het werkt overal waar Home Assistant werkt. Voor meldingen, het rode getal en de beginscherm-app is **HTTPS** nodig (Nabu Casa, eigen domein via bijvoorbeeld Cloudflare Tunnel, of een VPN naar een https-adres). Via alleen `http://<ip>:8123` thuis kun je wel lezen en versturen.

@@ -38,7 +38,8 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
+    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen. Tap the link to copy it.", copied: "Copied",
+    closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
     next: "Next", checking: "Checking…", password: "Password", required: "required", servers: "Servers",
@@ -81,7 +82,8 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
+    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm. Tik op de link om hem te kopiëren.", copied: "Gekopieerd",
+    closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
     next: "Volgende", checking: "Controleren…", password: "Wachtwoord", required: "vereist", servers: "Servers",
@@ -214,6 +216,7 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item input[type=checkbox]:checked { background:#34c759; } .item input[type=checkbox]:checked::after { left:22px; }
 .item select, .item input[type=text], .item input[type=email], .item input[type=password], .item input[type=number] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; text-align:right; min-width:0; flex:1; }
 .item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 inherit; background:transparent; color:inherit; }
+.item textarea#a-sig { min-height:240px; }
 .fab { position:absolute; right:18px; bottom:max(22px, env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; border:0; background:var(--card); color:var(--primary-text-color, #000); box-shadow:0 4px 18px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:4; }
 .fab .ic { width:26px; height:26px; }
 .swatches { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0; }
@@ -677,7 +680,7 @@ class HomemailApp extends HTMLElement {
     if (!accs.length) { this._toast(this.t("no_access")); return; }
     const account = m?.account || (this._view.account !== "all" ? this._view.account : this._set.default) || accs[0];
     const own = accs.map((a) => (this._set.accounts[a].address || "").toLowerCase());
-    const sig = (a) => this._set.accounts[a]?.signature || "";
+    const sig = (a) => this._set.accounts[a]?.signature || `${this.t("closing")}\n\n${this._set.user_name || ""}`.trimEnd();
     let to = [], cc = [], subject = "";
     if (m && mode !== "forward") {
       to = [m.reply_to || m.address];
@@ -814,7 +817,12 @@ class HomemailApp extends HTMLElement {
             <label class="item"><span class="text"><span class="name">${this.t("default_account")}</span><select data-opt="default">${accs.map((a) => `<option value="${esc(a)}"${a === s.default ? " selected" : ""}>${esc(s.accounts[a].name)}</option>`).join("")}</select></span></label>
           </div>
           <div class="explain">${this.t("settings_note")}</div>
+          <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(location.origin + "/homemail-files/app.html")}" style="flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"></div></div>
+          <div class="explain">${this.t("app_note")}</div>
         </div></div>`;
+      const url = veil.querySelector("#app-url");
+      url.onfocus = () => url.select();
+      url.onclick = () => { url.select(); navigator.clipboard?.writeText(url.value).then(() => this._toast(this.t("copied")), () => {}); };
       veil.querySelector("[data-x]").onclick = close;
       veil.querySelectorAll("[data-acc]").forEach((b) => (b.onclick = () => this._accountScreen(veil, b.dataset.acc, show)));
       veil.querySelector("[data-add]").onclick = () => (s.is_admin ? this._addAccount(veil, show) : this._toast(this.t("admin_only")));
@@ -842,7 +850,7 @@ class HomemailApp extends HTMLElement {
         <div class="item"><span class="text"><span class="name">${this.t("color")}</span><span class="swatches" id="a-color" data-v="${esc(a.color || colors[0])}">${colors.map((k) => `<button type="button" class="sw${k === (a.color || colors[0]) ? " on" : ""}" data-c="${k}" style="background:${k}" aria-label="${k}"></button>`).join("")}</span></span></div>
       </div>
       <div class="explain" style="margin-top:-14px">${this.t("account_note")}</div>
-      <div class="gtitle">${this.t("signature")}</div><div class="group"><div class="item"><textarea id="a-sig">${esc(a.signature || "")}</textarea></div></div>
+      <div class="gtitle">${this.t("signature")}</div><div class="group"><div class="item"><textarea id="a-sig">${esc(a.signature || `${this.t("closing")}\n\n${this._set.user_name || ""}`.trimEnd())}</textarea></div></div>
       <div class="explain">${this.t("signature_note")}</div>
       </div></div>`;
     veil.querySelector("[data-back]").onclick = back;
