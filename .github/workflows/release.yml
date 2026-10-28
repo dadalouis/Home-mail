@@ -2,7 +2,9 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [custom_components/homemail/manifest.json]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,7 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Create GitHub release from RELEASE_NOTES.md
+      - name: Create a GitHub release when the manifest version has none yet
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" --title "Home-mail ${GITHUB_REF_NAME#v}" --notes-file RELEASE_NOTES.md
+        run: |
+          version="v$(jq -r .version custom_components/homemail/manifest.json)"
+          if gh release view "$version" >/dev/null 2>&1; then
+            echo "Release $version already exists"
+          else
+            gh release create "$version" --target "$GITHUB_SHA" --title "Home-mail ${version#v}" --notes-file RELEASE_NOTES.md
+          fi
