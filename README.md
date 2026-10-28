@@ -29,6 +29,7 @@
 - Write, reply, reply all and forward (with attachments of the original), per-account signature and colour
 - Address suggestions from your inbox and sent mail
 - Search (server-side, Gmail search syntax works for Gmail)
+- Built-in notifications on your Companion app and the home-screen web app, per user: choose accounts, senders (VIP and muted), days, quiet hours, text and sound
 - A sensor per account with the number of unread messages, and a `homemail_new_mail` event
 - Per account you choose which Home Assistant users may use it (default: administrators only)
 - English and Dutch
@@ -66,13 +67,29 @@ Most other providers (your own domain, ISP mail) work with your normal password.
 - **Dashboard card**: add a card of type `custom:homemail-card` (best in a view of type *Panel*).
 - **On your phone's home screen**: open `https://<your-home-assistant>/homemail-files/app.html` in Safari/Chrome, log in with your Home Assistant account, then *Share → Add to Home Screen*.
 
-### 4. Notifications (optional)
+### 4. Notifications
 
-- **Companion app**: import the blueprint
-  [![Open your Home Assistant instance and show the blueprint import dialog.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fdadalouis%2FHome-mail%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhomemail%2Fnew_mail_notification.yaml)
-  and pick your phone.
-- **Web push to the home-screen app**: set up the Home Assistant [HTML5 push](https://www.home-assistant.io/integrations/html5/) integration; the web app then offers a "Turn on" button and a red badge with the unread count.
-- **Your own automations**: trigger on the event `homemail_new_mail`. Data: `account`, `account_name`, `account_email`, `uid`, `from_name`, `from_address`, `subject`, `preview`, `message_id`, `date`, `unread`.
+Home-mail sends the notifications itself, nothing else to install or set up:
+
+- **Companion app**: every new message is sent to the Home Assistant Companion app on the phones and tablets linked to your Home Assistant user. Tap it to open the message in Home-mail. The icon shows the number of unread messages.
+- **Web app on your home screen**: open the web app on your phone and tap **Turn on** (needs the Home Assistant [HTML5 push](https://www.home-assistant.io/integrations/html5/) integration and an https address, see below).
+- **Gone when read**: reading or removing a message in Home-mail takes its notification away again.
+
+Everyone sets this up for themselves under **Settings → Notifications** in Home-mail. The settings belong to your Home Assistant user, so other users never see yours:
+
+| Setting | What it does |
+|---|---|
+| Notifications | Everything on or off |
+| Accounts | Which of your mail accounts notify |
+| Which mail | All mail, or only senders on your VIP list. Plus a list of senders that never notify (an address or a whole domain, one per line) |
+| Days and quiet hours | Only on the days you pick, and silent between two times (for example 22:00 to 07:00) |
+| Message text, sound | Show the text or only the subject; with or without sound |
+| Where | Companion app and/or web app, and per Companion device |
+| Test notification | Sends a test to your own devices |
+
+Messages that arrive during quiet hours or on a day that is off do not notify afterwards; the mail itself is just there when you open the app.
+
+**Your own automations**: Home-mail also fires the event `homemail_new_mail` for every new message. Data: `account`, `account_name`, `account_email`, `uid`, `from_name`, `from_address`, `subject`, `preview`, `message_id`, `date`, `unread`.
 
 ## Multiple users, separate mailboxes
 

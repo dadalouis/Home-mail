@@ -14,7 +14,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from . import mail
+from . import mail, notify
 from .const import (
     CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_SMTP_PORT, CONF_SMTP_SERVER, DEFAULT_SCAN_INTERVAL, DOMAIN,
     EVENT_NEW_MAIL, OPT_NAME, OPT_SCAN_INTERVAL, SIGNAL_UPDATE,
@@ -62,6 +62,8 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
 
     def forget(self, folder: str, uid: str, gone: bool = False, **flags) -> None:
         """Keep the preloaded data in line with an action done in the app."""
+        if folder == "INBOX" and (gone or flags.get("seen")):
+            self.hass.async_create_task(notify.async_clear(self.hass, self.entry, uid))
         if gone:
             self.bodies.pop((folder, uid), None)
         if folder == "INBOX" and self.inbox is not None:
@@ -126,3 +128,7 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
                 "subject": m["subject"], "preview": m["preview"], "message_id": m["message_id"],
                 "date": m["date"], "unread": unread,
             })
+            try:
+                await notify.async_notify_new(self.hass, self.entry, m, unread)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("Notifications for new mail failed: %s", err)

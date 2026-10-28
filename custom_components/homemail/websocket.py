@@ -19,7 +19,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.helpers.storage import Store
 
-from . import mail
+from . import mail, notify
 from .const import (
     COLORS, DOMAIN, MAX_SENT_PER_HOUR, OPT_COLOR, OPT_NAME, OPT_SENDER, OPT_SENT_FOLDER, OPT_SIGNATURE, OPT_USERS,
     PROVIDERS, SIGNAL_UPDATE, URL_FILES,
@@ -36,7 +36,8 @@ class Unauthorized(Exception):
 
 
 def async_register_websocket(hass: HomeAssistant) -> None:
-    for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe):
+    for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe,
+                    ws_push_register, ws_notify_test):
         websocket_api.async_register_command(hass, handler)
 
 
@@ -93,8 +94,11 @@ async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
                        "unread": (e.runtime_data.data or {}).get("unread", 0)}
     if s["default"] not in accounts:
         s["default"] = next(iter(accounts), "")
+    ncfg = notify.settings_of(all_settings, user.id)
     return {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or "",
-            "app_urls": _app_urls(hass)}
+            "app_urls": _app_urls(hass), "notify": ncfg,
+            "notify_devices": [d["name"] for d in notify.app_devices(hass, user.id)],
+            "notify_web": len(notify.web_entities(hass, s.get("push") or []))}
 
 
 def _err(err: Exception) -> str:
@@ -128,6 +132,8 @@ async def ws_settings(hass, connection, msg) -> None:
         for k in ("bcc_me", "images"):
             if k in changes:
                 mine[k] = bool(changes[k])
+        if isinstance(changes.get("notify"), dict):
+            mine["notify"] = notify.clean(changes["notify"], mine.get("notify") or {})
         all_settings[user.id] = mine
         store.async_delay_save(lambda: all_settings, 1)
         for acc, w in (changes.get("accounts") or {}).items():
@@ -141,6 +147,31 @@ async def ws_settings(hass, connection, msg) -> None:
             # options are applied live by the app; no reload needed
             hass.config_entries.async_update_entry(entry, options=opts)
     connection.send_result(msg["id"], await _settings(hass, user))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemail/push_register", vol.Required("name"): vol.All(str, vol.Length(min=1, max=100))})
+@websocket_api.async_response
+async def ws_push_register(hass, connection, msg) -> None:
+    """The web app registered for web push under this name (html5): remember it for this user."""
+    store, all_settings = await _store(hass)
+    mine = {**USER_DEFAULTS, **all_settings.get(connection.user.id, {})}
+    mine["push"] = [*[n for n in (mine.get("push") or []) if n != msg["name"]], msg["name"]][-10:]
+    all_settings[connection.user.id] = mine
+    store.async_delay_save(lambda: all_settings, 1)
+    connection.send_result(msg["id"], {"ok": True})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemail/notify_test"})
+@websocket_api.async_response
+async def ws_notify_test(hass, connection, msg) -> None:
+    """Send a test notification to the devices of the logged-in user."""
+    _, all_settings = await _store(hass)
+    try:
+        sent = await notify.async_test(hass, connection.user, all_settings)
+    except Exception as err:  # noqa: BLE001
+        connection.send_error(msg["id"], "notify_error", _err(err))
+        return
+    connection.send_result(msg["id"], sent)
 
 
 @websocket_api.websocket_command({

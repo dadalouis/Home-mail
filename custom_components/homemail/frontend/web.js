@@ -151,7 +151,7 @@ connect();
 
 // ---------- notifications (web push via the HA html5 integration, optional) ----------
 // iOS: only in the app on the home screen, and asking for permission is only allowed after a tap.
-// After registering, HA gets a notify entity for this device; the Home-mail blueprint can use it.
+// After registering, HA gets a notify entity for this device; Home-mail remembers whose device it is.
 const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(s.length / 4) * 4, "=")), (c) => c.charCodeAt(0));
 
 async function pushOn(btn, key) {
@@ -161,13 +161,15 @@ async function pushOn(btn, key) {
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) });
+    const name = "Home-mail " + Math.random().toString(36).slice(2, 8);
     const r = await fetch(`${BASE}/api/notify.html5`, {
       method: "POST",
       headers: { Authorization: `Bearer ${await validToken()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subscription: sub.toJSON(), browser: "chrome", name: "Home-mail" }),
+      body: JSON.stringify({ subscription: sub.toJSON(), browser: "chrome", name }),
     });
     if (!r.ok) throw new Error(`${t("refused")} (${r.status})`);
-    try { localStorage.setItem("homemail_push", sub.endpoint); } catch (_) {}
+    await connection.sendMessagePromise({ type: "homemail/push_register", name }); // Home-mail now knows whose device this is
+    try { localStorage.setItem("homemail_push2", sub.endpoint); } catch (_) {}
     btn.closest("#push").remove();
   } catch (e) {
     btn.disabled = false; btn.textContent = t("retry");
@@ -179,7 +181,7 @@ async function pushBar() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return; // plain Safari: no push
   const reg = await navigator.serviceWorker.register("sw.js", { scope: new URL(".", location.href).pathname });
   const sub = await reg.pushManager.getSubscription().catch(() => null);
-  let known = null; try { known = localStorage.getItem("homemail_push"); } catch (_) {}
+  let known = null; try { known = localStorage.getItem("homemail_push2"); } catch (_) {}
   if (sub && Notification.permission === "granted" && known === sub.endpoint) return;
   // Only offer it when the html5 integration is set up in HA.
   for (let i = 0; i < 20 && ws?.readyState !== 1; i++) await new Promise((r) => setTimeout(r, 500));
