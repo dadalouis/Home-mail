@@ -77,6 +77,20 @@ Most other providers (your own domain, ISP mail) work with your normal password.
 - **Web push to the home-screen app**: set up the Home Assistant [HTML5 push](https://www.home-assistant.io/integrations/html5/) integration; the web app then offers a "Turn on" button and a red badge with the unread count.
 - **Your own automations**: trigger on the event `homemail_new_mail`. Data: `account`, `account_name`, `account_email`, `uid`, `from_name`, `from_address`, `subject`, `preview`, `message_id`, `date`, `unread`.
 
+## Multiple users, separate mailboxes
+
+Every person in your household can have their own mailboxes, all on the same Home-mail installation and the same app address.
+
+1. Give each person their own Home Assistant user (Settings → People → Users).
+2. Add every mail account as its own Home-mail entry (Settings → Devices & services → Home-mail → **Add entry**).
+3. Open an account's options and choose under **Users who may use this account** who may use it. Leave it empty and only administrators can use it.
+4. Everyone opens the same app address and logs in with their own Home Assistant account. You only see the mailboxes you were given access to; other mailboxes do not appear at all.
+
+Good to know:
+- An account can be shared with several users, and a user can have several accounts.
+- Once you pick users for an account, only those users get access. Administrators are not added automatically, so include yourself if you want to use it too.
+- Personal settings (default account, blind copy to myself, load images) are stored per user. The signature and colour belong to the account. New messages get a default closing with the name of the logged-in Home Assistant user, until you set your own signature.
+
 ## Access from outside your home
 
 Home-mail uses your normal Home Assistant address and login, so it works wherever Home Assistant works:
