@@ -48,6 +48,7 @@ class HomepostCoordinator(DataUpdateCoordinator[dict[str, int]]):
         self.cache: dict = {}  # (account, folder, uid) -> list row (headers + preview), memory only
         # Preloaded so the app opens instantly; memory only, refreshed when the inbox changes.
         self.inbox: list[dict] | None = None  # latest inbox list (with flags)
+        self.mailboxes: list[dict] | None = None  # latest folder list with counters
         self.bodies: OrderedDict[tuple[str, str], dict] = OrderedDict()  # (folder, uid) -> read_message result
         self._prefetching = False
 
@@ -80,6 +81,7 @@ class HomepostCoordinator(DataUpdateCoordinator[dict[str, int]]):
             rows = await self.hass.async_add_executor_job(
                 mail.list_messages, self.entry.entry_id, self.cfg, 50, None, self.cache, "INBOX")
             self.inbox = rows
+            self.mailboxes = await self.hass.async_add_executor_job(mail.mailboxes, self.cfg)
             rows = sorted(rows, key=lambda r: r.get("date") or "", reverse=True)
             todo = [r["uid"] for r in rows if not r["seen"] and ("INBOX", r["uid"]) not in self.bodies][:PREFETCH_BODIES]
             for uid in todo:

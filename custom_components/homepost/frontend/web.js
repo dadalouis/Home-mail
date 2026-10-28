@@ -64,13 +64,26 @@ const app = document.querySelector("homepost-app");
 let ws = null, seq = 0, pending = new Map(), delay = 1000;
 const subs = new Set(); // {msg, cb, id}: re-sent after every reconnect
 
+// iOS closes the websocket while the app is in the background. A request made right after coming back
+// waits (max 15 s) for the new connection instead of failing at once.
+let ready = null, readyOk = null;
+const waitReady = () => {
+  if (ws?.readyState === 1 && authed) return Promise.resolve();
+  if (!ws || ws.readyState > 1) { delay = 1000; connect(); }
+  ready ??= new Promise((ok) => (readyOk = ok));
+  return Promise.race([ready, new Promise((_, no) => setTimeout(() => no(new Error("disconnected")), 15000))]);
+};
+let authed = false;
+
 const connection = {
-  sendMessagePromise(message) {
+  async sendMessagePromise(message) {
+    await waitReady();
     return new Promise((ok, fail) => {
-      if (!ws || ws.readyState !== 1) return fail(new Error("disconnected"));
-      const id = ++seq;
-      pending.set(id, { ok, fail });
-      ws.send(JSON.stringify({ ...message, id }));
+      const id = ++seq, sock = ws;
+      // a socket iOS silently killed still says "open": no answer in 30 s = reconnect
+      const timer = setTimeout(() => { if (pending.delete(id)) { fail(new Error("disconnected")); if (ws === sock) sock.close(); } }, 30000);
+      pending.set(id, { ok: (r) => { clearTimeout(timer); ok(r); }, fail: (e) => { clearTimeout(timer); fail(e); } });
+      sock.send(JSON.stringify({ ...message, id }));
     });
   },
   subscribeMessage(cb, msg) {
@@ -99,6 +112,7 @@ async function connect() {
   let token;
   try { token = await validToken(); } catch (_) { return retry(); }
   if (!token) return toLogin();
+  if (ws && ws.readyState <= 1) return; // already (re)connecting
   status(ws ? t("reconnect") : "");
   const s = new WebSocket(BASE.replace(/^http/, "ws") + "/api/websocket");
   ws = s;
@@ -108,6 +122,7 @@ async function connect() {
     else if (m.type === "auth_invalid") { const x = read(); if (x) { x.expires = 0; keep(x); } s.close(); }
     else if (m.type === "auth_ok") {
       delay = 1000; status("");
+      authed = true; readyOk?.(); ready = null; readyOk = null;
       app.hass = { connection, language: LANG, locale: { language: navigator.language || LANG } };
       for (const sub of subs) sendSub(sub);
     } else if (m.type === "event") {
@@ -120,6 +135,7 @@ async function connect() {
   };
   s.onclose = () => {
     if (ws !== s) return;
+    authed = false;
     for (const w of pending.values()) if (!w.sub) w.fail(new Error("disconnected"));
     pending.clear();
     retry();

@@ -3,6 +3,7 @@ the users chosen in the account's options, or (if none are chosen) every adminis
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
@@ -172,19 +173,30 @@ async def ws_list(hass, connection, msg) -> None:
     connection.send_result(msg["id"], {"messages": rows, "errors": errors})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homepost/mailboxes"})
+@websocket_api.websocket_command({vol.Required("type"): "homepost/mailboxes", vol.Optional("cached", default=False): bool})
 @websocket_api.async_response
 async def ws_mailboxes(hass, connection, msg) -> None:
-    """All folders with counters, per account."""
-    out, errors = [], []
-    for k, e in _accounts(hass, connection.user).items():
+    """All folders with counters, per account (accounts in parallel).
+    cached=True: the last known result at once (None if there is none yet); the app then asks again live."""
+    entries = _accounts(hass, connection.user)
+    if msg["cached"]:
+        known = all(e.runtime_data.mailboxes is not None for e in entries.values())
+        connection.send_result(msg["id"], {"accounts": [
+            {"account": k, "name": e.options.get(OPT_NAME) or e.title, "folders": e.runtime_data.mailboxes}
+            for k, e in entries.items()] if known and entries else None, "errors": [], "cached": True})
+        return
+
+    async def one(k: str, e: ConfigEntry) -> tuple[dict, str | None]:
         try:
             folders = await hass.async_add_executor_job(mail.mailboxes, account_cfg(e))
+            e.runtime_data.mailboxes = folders
+            error = None
         except Exception as err:  # noqa: BLE001
-            errors.append(f"{e.options.get(OPT_NAME) or e.title}: {_err(err)}"[:160])
-            folders = []
-        out.append({"account": k, "name": e.options.get(OPT_NAME) or e.title, "folders": folders})
-    connection.send_result(msg["id"], {"accounts": out, "errors": errors})
+            folders, error = [], f"{e.options.get(OPT_NAME) or e.title}: {_err(err)}"[:160]
+        return {"account": k, "name": e.options.get(OPT_NAME) or e.title, "folders": folders}, error
+
+    results = await asyncio.gather(*(one(k, e) for k, e in entries.items()))
+    connection.send_result(msg["id"], {"accounts": [r for r, _ in results], "errors": [x for _, x in results if x]})
 
 
 @websocket_api.websocket_command({

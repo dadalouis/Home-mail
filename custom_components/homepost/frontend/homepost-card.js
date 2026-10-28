@@ -8,14 +8,18 @@ const loadApp = () => (loading ??= import(`${base}homepost-app.js?v=${version}`)
 class HomepostHost extends HTMLElement {
   set hass(h) {
     this._hass = h;
-    if (!this._app) {
+    if (this._app) { this._app.hass = h; return; }
+    // Create the element only after its class is defined: HA's scoped custom element registry refuses
+    // to upgrade an element that existed before customElements.define().
+    if (this._starting) return;
+    this._starting = true;
+    loadApp().then(() => {
       this._app = document.createElement("homepost-app");
       if (this.tagName.toLowerCase() === "homepost-panel") this._app.setAttribute("panel", "");
       this._app.toggleAttribute("narrow", !!this._narrow);
       this.appendChild(this._app);
-      loadApp();
-    }
-    this._app.hass = h;
+      this._app.hass = this._hass;
+    });
   }
   get hass() { return this._hass; }
   set narrow(n) { this._narrow = n; if (this._app) this._app.toggleAttribute("narrow", !!n); }

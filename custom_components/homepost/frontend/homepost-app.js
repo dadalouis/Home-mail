@@ -168,7 +168,19 @@ const CSS = `
 .btn:hover { background:var(--fill); } .btn.on { color:#ff9f0a; } .btn[disabled] { opacity:.4; }
 .btn.pill { border-radius:20px; padding:8px 14px; background:var(--fill); color:var(--primary-text-color, #000); }
 .back { display:none; }
-#menu { display:none; } :host([panel][narrow]) #menu { display:inline-flex; }
+/* sidebar panel: HA-style top bar (menu button with notification dot + title), like other HA screens */
+:host([panel]) { display:flex; flex-direction:column; }
+.toolbar { display:flex; align-items:center; gap:4px; flex:none; height:var(--header-height, 56px); box-sizing:content-box; padding:0 12px 0 4px;
+  background:var(--app-header-background-color, var(--primary-background-color)); color:var(--app-header-text-color, var(--primary-text-color));
+  border-bottom:var(--app-header-border-bottom, 1px solid var(--divider-color, #e0e0e0)); }
+.toolbar .ttl { margin-left:20px; font-size:20px; font-weight:400; }
+.toolbar .btn.pill { padding:6px 14px; font-size:16px; }
+:host([panel]) #mb .head h1 { margin-top:8px; }
+:host([panel]) .app { flex:1; height:auto; min-height:0; }
+:host([panel]) .head, :host([panel]) .bar { padding-top:6px; } :host([panel]) .sbar { padding-top:10px; }
+:host([panel]) .fab, :host([panel]) .toast { bottom:22px; }
+/* stand-alone web app: no settings (they live in Home Assistant itself) */
+:host([standalone]) #mb .row1 { display:none; } :host([standalone]) #mb .head h1 { margin-top:8px; }
 .menu { position:absolute; right:12px; top:100%; z-index:5; background:var(--card); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.25); overflow:hidden; min-width:220px; }
 .menu button { display:flex; width:100%; align-items:center; gap:10px; border:0; background:transparent; color:var(--primary-text-color, #000); font:inherit; font-size:16px; padding:13px 16px; cursor:pointer; text-align:left; border-bottom:1px solid var(--line); }
 .menu button:last-child { border-bottom:0; }
@@ -229,12 +241,13 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 class HomepostApp extends HTMLElement {
   constructor() {
     super();
-    for (const p of ["hass"]) if (Object.prototype.hasOwnProperty.call(this, p)) { const v = this[p]; delete this[p]; this[p] = v; }
     this._view = { account: "all", folder: "INBOX", kind: "inbox", name: null }; // current folder; name null = "All Inboxes"
     this._search = ""; this._msgs = []; this._sel = null; this._open = null; this._busy = false; this._errors = [];
     this._set = { accounts: {}, default: "", images: true }; this._mb = null; this._contacts = [];
     this._unreadOnly = load("homepost_unread_only", false);
     this._closed = load("homepost_closed", {}); // collapsed accounts on the Mailboxes screen
+    // a property set before the upgrade would hide the setter
+    for (const p of ["hass"]) if (Object.prototype.hasOwnProperty.call(this, p)) { const v = this[p]; delete this[p]; this[p] = v; }
   }
   set hass(h) {
     const first = !this._hass;
@@ -242,6 +255,14 @@ class HomepostApp extends HTMLElement {
     if (first || !this._lang) this._lang = String(h.locale?.language || h.language || navigator.language || "en").slice(0, 2).toLowerCase();
     if (!this._built) this._build();
     if (first || h.connection !== this._conn) this._subscribe();
+    this._syncMenu();
+  }
+  static get observedAttributes() { return ["narrow"]; }
+  attributeChangedCallback() { this._syncMenu(); }
+  _syncMenu() {
+    if (!this._menuBtn) return;
+    this._menuBtn.hass = this._hass;
+    this._menuBtn.narrow = this.hasAttribute("narrow");
   }
   connectedCallback() { this._timer = setInterval(() => !document.hidden && this._load(true), 120000); }
   disconnectedCallback() { clearInterval(this._timer); this._unsub?.then((u) => u && u()).catch(() => {}); this._unsub = null; this._conn = null; }
@@ -288,7 +309,7 @@ class HomepostApp extends HTMLElement {
       <div class="app" id="app">
         <section class="left">
           <div class="pane" id="mb">
-            <div class="head"><div class="row1"><button class="btn" id="menu" title="Menu">${svg(IC.menu)}</button><span class="fill"></span><button class="btn pill" id="settings">${this.t("settings")}</button></div><h1>${this.t("mailboxes")}</h1>
+            <div class="head"><div class="row1"><span class="fill"></span><button class="btn pill" id="settings">${this.t("settings")}</button></div><h1>${this.t("mailboxes")}</h1>
               <div class="sub" id="mbsub"></div></div>
             <div class="scroll" id="mbbody"><div class="empty">${this.t("loading")}</div></div>
             <button class="fab" id="new2" title="${this.t("new_message")}">${svg(IC.compose)}</button>
@@ -314,7 +335,21 @@ class HomepostApp extends HTMLElement {
     $("new").onclick = $("new2").onclick = () => this._compose("new");
     $("tomb").onclick = () => this._toMailboxes();
     $("settings").onclick = () => this._settings();
-    $("menu").onclick = () => this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true })); // sidebar on phones
+    if (this.hasAttribute("panel")) {
+      // HA's own menu button (opens the sidebar, shows the notification dot) + title
+      const bar = document.createElement("div");
+      bar.className = "toolbar";
+      this._menuBtn = document.createElement("ha-menu-button");
+      const ttl = document.createElement("span");
+      ttl.className = "ttl"; ttl.textContent = "Homepost";
+      const fill = document.createElement("span");
+      fill.style.flex = "1";
+      const row = $("settings").closest(".row1");
+      bar.append(this._menuBtn, ttl, fill, $("settings")); // Settings moves into the top bar
+      row.remove();
+      this._root.insertBefore(bar, $("app"));
+      this._syncMenu();
+    }
     $("mbbody").onclick = (e) => this._mbClick(e);
     $("rows").onclick = (e) => {
       if (this._swipeClick) { this._swipeClick = false; return; }
@@ -330,9 +365,18 @@ class HomepostApp extends HTMLElement {
     this._loadSettings();
   }
 
-  async _call(type, data = {}) {
+  async _call(type, data = {}, retry = true) {
     try { return await this._hass.connection.sendMessagePromise({ type: "homepost/" + type, ...data }); }
-    catch (e) { throw new Error(e?.message || e?.code || String(e)); }
+    catch (e) {
+      const msg = e?.message || e?.code || String(e);
+      // connection hiccup (e.g. phone back from the background): try once more; real errors come straight through
+      const hiccup = !e?.code || e.code === 3 /* HA frontend: ERR_CONNECTION_LOST */ || /disconnect|connection|lost|closed|timeout/i.test(msg);
+      if (retry && hiccup && type !== "send" && type !== "add_account") {
+        await new Promise((r) => setTimeout(r, 800));
+        return this._call(type, data, false);
+      }
+      throw new Error(msg);
+    }
   }
   async _loadSettings() {
     try { this._set = await this._call("settings"); } catch (_) {}
@@ -348,6 +392,9 @@ class HomepostApp extends HTMLElement {
     this._loadMb();
   }
   async _loadMb() {
+    if (!this._mb) { // last known state from Home Assistant first: instant
+      try { const c = await this._call("mailboxes", { cached: true }); if (c.accounts && !this._mb) { this._mb = c; this._renderMb(); } } catch (_) {}
+    }
     try { this._mb = await this._call("mailboxes"); this._renderMb(); }
     catch (e) { this._root.getElementById("mbbody").innerHTML = `<div class="empty">${this.t("load_failed")}</div>`; }
   }
