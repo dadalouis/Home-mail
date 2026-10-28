@@ -102,6 +102,15 @@ Home-mail uses your normal Home Assistant address and login, so it works whereve
 | VPN (WireGuard, Tailscale, …) to an `https://` address | ✅ | ✅ |
 | Only `http://<ip>:8123` at home | ✅ | ❌ browsers require HTTPS for these |
 
+## Put the app on your iPhone
+
+1. On your iPhone, open Safari and go to the app address. You find it at the bottom of the Home-mail settings (tap it to copy). It looks like `https://<your-home-assistant>/homemail-files/app.html`.
+2. Log in with your Home Assistant account.
+3. Tap **Share** → **Add to Home Screen** → **Add**.
+4. Open Home-mail from your home screen. For notifications and the red unread badge, tap **Turn on** in the app.
+
+Use the **https** address (Home Assistant Cloud, your own domain or a VPN to an https address). With only `http://<ip>:8123` you can read and send mail, but iOS does not allow notifications or the badge. See [Access from outside your home](#access-from-outside-your-home).
+
 ## How it works
 
 - Each mail account is a config entry. The password is stored only in your Home Assistant (like any other integration) and is never logged.
