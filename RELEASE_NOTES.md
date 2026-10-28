@@ -1,4 +1,5 @@
 ### What's new
-- README: the About section now tells why I built Home-mail (the iPhone Mail app doesn't push new mail right away).
+- Settings now show the external https address of the app (Home Assistant Cloud or your own domain) when you have one, so it is easy to put on your iPhone home screen. Without it, the address at home is shown with a note that notifications need https.
+- README: step-by-step guide to put the app on your iPhone.
 
-No restart of Home Assistant needed for this update.
+Restart Home Assistant after updating, then reload the app.
