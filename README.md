@@ -3,15 +3,12 @@
 # Home-mail
 
 <p align="center">
-  <a href="https://analytics.home-assistant.io/custom_integrations.json"><img src="https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.homemail.total" alt="Active installations"></a>
   <a href="https://github.com/dadalouis/Home-mail/releases"><img src="https://img.shields.io/github/v/release/dadalouis/Home-mail?include_prereleases" alt="Release"></a>
   <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS Custom"></a>
   <a href="https://github.com/dadalouis/Home-mail/actions/workflows/validate.yml"><img src="https://github.com/dadalouis/Home-mail/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
 </p>
 
 *Home + E-mail: the **E** of Home is the **E** of E-mail.*
-
-> The install counter comes from Home Assistant's anonymous [analytics](https://analytics.home-assistant.io): it counts installations that have analytics turned on, updated once a day.
 
 **Your mail, fetched by your own Home Assistant.** A clean, iOS-Mail-style mail app that lives inside Home Assistant: as a sidebar panel, as a dashboard card, and as a stand-alone web app you can put on your phone's home screen.
 
@@ -129,3 +126,11 @@ Feedback and pull requests are welcome via [issues](https://github.com/dadalouis
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  <a href="https://analytics.home-assistant.io/custom_integrations.json"><img src="https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.homemail.total" alt="Active installations"></a>
+</p>
+
+<sub>The install counter comes from Home Assistant's anonymous [analytics](https://analytics.home-assistant.io): it counts installations that have analytics turned on, updated once a day.</sub>

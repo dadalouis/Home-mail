@@ -3,14 +3,11 @@
 # Home-mail
 
 <p align="center">
-  <a href="https://analytics.home-assistant.io/custom_integrations.json"><img src="https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=installaties&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.homemail.total" alt="Actieve installaties"></a>
   <a href="https://github.com/dadalouis/Home-mail/releases"><img src="https://img.shields.io/github/v/release/dadalouis/Home-mail?include_prereleases" alt="Release"></a>
   <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS Custom"></a>
 </p>
 
 *Home + E-mail: de **E** van Home is de **E** van E-mail.*
-
-> De installatieteller komt uit de anonieme [analytics](https://analytics.home-assistant.io) van Home Assistant: hij telt installaties waarbij analytics aan staat en wordt één keer per dag bijgewerkt.
 
 **Je mail, opgehaald door je eigen Home Assistant.** Een overzichtelijke mail-app in de stijl van iOS Mail, die in Home Assistant woont: als zijbalk-paneel, als dashboardkaart en als losse web-app op het beginscherm van je telefoon.
 
@@ -112,3 +109,11 @@ Feedback en pull requests zijn welkom via [issues](https://github.com/dadalouis/
 ## Licentie
 
 MIT
+
+---
+
+<p align="center">
+  <a href="https://analytics.home-assistant.io/custom_integrations.json"><img src="https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=installaties&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.homemail.total" alt="Actieve installaties"></a>
+</p>
+
+<sub>De installatieteller komt uit de anonieme [analytics](https://analytics.home-assistant.io) van Home Assistant: hij telt installaties waarbij analytics aan staat en wordt één keer per dag bijgewerkt.</sub>
