@@ -1,0 +1,50 @@
+blueprint:
+  name: Homepost – notify on new mail
+  description: >
+    Sends a notification to the Home Assistant Companion app when Homepost sees a new message.
+    Tapping the notification opens Homepost in the app.
+  domain: automation
+  source_url: https://github.com/dadalouis/ha-homepost/blob/main/blueprints/automation/homepost/new_mail_notification.yaml
+  input:
+    notify_device:
+      name: Phone
+      description: Device running the Home Assistant Companion app.
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+    accounts:
+      name: Only these accounts (optional)
+      description: Leave empty for all accounts. Use the email address of the account.
+      default: []
+      selector:
+        text:
+          multiple: true
+
+trigger:
+  - trigger: event
+    event_type: homepost_new_mail
+
+variables:
+  accounts: !input accounts
+
+condition:
+  - condition: template
+    value_template: "{{ accounts | count == 0 or trigger.event.data.account_email in accounts }}"
+
+action:
+  - domain: mobile_app
+    type: notify
+    device_id: !input notify_device
+    title: "{{ trigger.event.data.from_name }}"
+    message: "{{ trigger.event.data.subject or '(no subject)' }}\n{{ trigger.event.data.preview[:120] }}"
+    data:
+      group: "homepost-{{ trigger.event.data.account }}"
+      tag: "homepost-{{ trigger.event.data.uid }}"
+      url: /homepost
+      clickAction: /homepost
+      push:
+        badge: "{{ trigger.event.data.unread }}"
+
+mode: queued
+max: 10

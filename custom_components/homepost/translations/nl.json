@@ -1,0 +1,87 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mailaccount toevoegen",
+        "description": "Home Assistant haalt de mail van dit account op en verstuurt hem. Je telefoon laat hem alleen zien.",
+        "data": { "provider": "Provider" }
+      },
+      "account": {
+        "title": "Accountgegevens",
+        "description": "Vul het adres en wachtwoord van je mailaccount in. De IMAP- en SMTP-servers staan op de hulppagina's van je provider.",
+        "data": {
+          "name": "Weergavenaam",
+          "email": "E-mailadres",
+          "password": "Wachtwoord",
+          "imap_server": "IMAP-server",
+          "imap_port": "IMAP-poort",
+          "smtp_server": "SMTP-server",
+          "smtp_port": "SMTP-poort"
+        }
+      },
+      "account_app": {
+        "title": "Accountgegevens",
+        "description": "Deze provider accepteert je gewone wachtwoord niet meer in andere apps; er is eenmalig een app-wachtwoord nodig. Dat kost een minuutje:\n\n1. [Zet verificatie in 2 stappen aan]({step1}) (een bevestiging op je telefoon is genoeg).\n2. [Maak een app-wachtwoord]({step2}), noem het 'Home Assistant' en kopieer het.\n3. Plak het hieronder. Spaties mogen.",
+        "data": {
+          "name": "Weergavenaam",
+          "email": "E-mailadres",
+          "password": "Wachtwoord of app-wachtwoord",
+          "imap_server": "IMAP-server",
+          "imap_port": "IMAP-poort",
+          "smtp_server": "SMTP-server",
+          "smtp_port": "SMTP-poort"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw inloggen",
+        "description": "De mailserver weigerde het wachtwoord van {email}. Vul een nieuw (app-)wachtwoord in.",
+        "data": { "password": "Wachtwoord of app-wachtwoord" }
+      }
+    },
+    "error": {
+      "invalid_auth_imap": "Inloggen mislukt (IMAP): controleer adres en wachtwoord.",
+      "app_password_required": "De provider weigerde je gewone wachtwoord: er is een app-wachtwoord nodig. Volg stap 1 en 2 hierboven en plak dan het app-wachtwoord.",
+      "invalid_auth_smtp": "Inloggen voor verzenden mislukt (SMTP): controleer het wachtwoord.",
+      "cannot_connect_imap": "IMAP-server niet bereikbaar.",
+      "cannot_connect_smtp": "SMTP-server niet bereikbaar."
+    },
+    "abort": {
+      "already_configured": "Dit account is al toegevoegd.",
+      "reauth_successful": "Wachtwoord bijgewerkt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Accountinstellingen",
+        "data": {
+          "name": "Weergavenaam",
+          "color": "Kleur",
+          "signature": "Handtekening",
+          "sent_folder": "Map voor verzonden mail",
+          "users": "Gebruikers die dit account mogen gebruiken",
+          "scan_interval": "Op nieuwe mail controleren elke"
+        },
+        "data_description": {
+          "sent_folder": "Leeg laten om automatisch te bepalen (Gmail bewaart zelf een kopie).",
+          "users": "Leeg laten om alle beheerders toe te staan."
+        }
+      }
+    }
+  },
+  "selector": {
+    "provider": {
+      "options": {
+        "gmail": "Gmail",
+        "icloud": "iCloud",
+        "outlook": "Outlook, Hotmail, Live",
+        "other": "Andere (eigen domein)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "unread": { "name": "Ongelezen" }
+    }
+  }
+}

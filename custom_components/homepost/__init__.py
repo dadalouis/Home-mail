@@ -1,0 +1,69 @@
+"""Homepost: your own mail app inside Home Assistant.
+
+Home Assistant fetches the mail (IMAP) and sends it (SMTP); the phone only shows it. Each config entry is
+one mail account. The app talks to Home Assistant over the websocket API (websocket.py) and is served as a
+sidebar panel, a Lovelace card (custom:homepost-card) and a stand-alone web app (/homepost-files/app.html).
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+from homeassistant.components import frontend, panel_custom
+from homeassistant.components.http import StaticPathConfig
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import ConfigType
+
+from .const import DOMAIN, PANEL_ELEMENT, PANEL_URL, URL_FILES, VERSION
+from .coordinator import HomepostCoordinator
+from .websocket import async_register_websocket
+
+_LOGGER = logging.getLogger(__name__)
+PLATFORMS = [Platform.SENSOR]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+type HomepostConfigEntry = ConfigEntry[HomepostCoordinator]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Static files, Lovelace card and websocket commands (once, for all accounts)."""
+    hass.data.setdefault(DOMAIN, {"panel": False, "sent": []})
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(URL_FILES, str(Path(__file__).parent / "frontend"), cache_headers=False)]
+    )
+    frontend.add_extra_js_url(hass, f"{URL_FILES}/homepost-card.js?v={VERSION}")
+    async_register_websocket(hass)
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: HomepostConfigEntry) -> bool:
+    coordinator = HomepostCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = coordinator
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    if not hass.data[DOMAIN]["panel"]:
+        await panel_custom.async_register_panel(
+            hass,
+            frontend_url_path=PANEL_URL,
+            webcomponent_name=PANEL_ELEMENT,
+            sidebar_title="Homepost",
+            sidebar_icon="mdi:email-outline",
+            module_url=f"{URL_FILES}/homepost-card.js?v={VERSION}",
+            require_admin=False,
+        )
+        hass.data[DOMAIN]["panel"] = True
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: HomepostConfigEntry) -> bool:
+    ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    others = [e for e in hass.config_entries.async_entries(DOMAIN)
+              if e.entry_id != entry.entry_id and e.state is ConfigEntryState.LOADED]
+    if ok and not others and hass.data[DOMAIN]["panel"]:
+        frontend.async_remove_panel(hass, PANEL_URL)
+        hass.data[DOMAIN]["panel"] = False
+    return ok

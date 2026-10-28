@@ -1,0 +1,87 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a mail account",
+        "description": "Home Assistant will fetch and send the mail for this account. Your phone only shows it.",
+        "data": { "provider": "Provider" }
+      },
+      "account": {
+        "title": "Account details",
+        "description": "Enter the address and password of your mail account. Your provider's help pages list the IMAP and SMTP servers.",
+        "data": {
+          "name": "Display name",
+          "email": "Email address",
+          "password": "Password",
+          "imap_server": "IMAP server",
+          "imap_port": "IMAP port",
+          "smtp_server": "SMTP server",
+          "smtp_port": "SMTP port"
+        }
+      },
+      "account_app": {
+        "title": "Account details",
+        "description": "This provider no longer accepts your normal password in other apps; it needs a one-time app password. It takes a minute:\n\n1. [Turn on 2-Step Verification]({step1}) (a confirmation on your phone is enough).\n2. [Create an app password]({step2}), name it 'Home Assistant' and copy it.\n3. Paste it below. Spaces are fine.",
+        "data": {
+          "name": "Display name",
+          "email": "Email address",
+          "password": "Password or app password",
+          "imap_server": "IMAP server",
+          "imap_port": "IMAP port",
+          "smtp_server": "SMTP server",
+          "smtp_port": "SMTP port"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Log in again",
+        "description": "The mail server refused the password for {email}. Enter a new (app) password.",
+        "data": { "password": "Password or app password" }
+      }
+    },
+    "error": {
+      "invalid_auth_imap": "Login failed (IMAP): check the address and password.",
+      "app_password_required": "The provider refused your normal password: an app password is required. Follow steps 1 and 2 above, then paste the app password.",
+      "invalid_auth_smtp": "Login failed for sending (SMTP): check the password.",
+      "cannot_connect_imap": "Cannot reach the IMAP server.",
+      "cannot_connect_smtp": "Cannot reach the SMTP server."
+    },
+    "abort": {
+      "already_configured": "This account is already added.",
+      "reauth_successful": "Password updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Account settings",
+        "data": {
+          "name": "Display name",
+          "color": "Colour",
+          "signature": "Signature",
+          "sent_folder": "Sent folder",
+          "users": "Users who may use this account",
+          "scan_interval": "Check for new mail every"
+        },
+        "data_description": {
+          "sent_folder": "Leave empty to detect it automatically (Gmail keeps a copy itself).",
+          "users": "Leave empty to allow all administrators."
+        }
+      }
+    }
+  },
+  "selector": {
+    "provider": {
+      "options": {
+        "gmail": "Gmail",
+        "icloud": "iCloud",
+        "outlook": "Outlook, Hotmail, Live",
+        "other": "Other (own domain)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "unread": { "name": "Unread" }
+    }
+  }
+}
