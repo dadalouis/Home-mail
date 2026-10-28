@@ -10,7 +10,7 @@
         "title": "Account details",
         "description": "Enter the address and password of your mail account. Your provider's help pages list the IMAP and SMTP servers.",
         "data": {
-          "name": "Display name",
+          "name": "Description (e.g. Work)",
           "email": "Email address",
           "password": "Password",
           "imap_server": "IMAP server",
@@ -23,7 +23,7 @@
         "title": "Account details",
         "description": "This provider no longer accepts your normal password in other apps; it needs a one-time app password. It takes a minute:\n\n1. [Turn on 2-Step Verification]({step1}) (a confirmation on your phone is enough).\n2. [Create an app password]({step2}), name it 'Home Assistant' and copy it.\n3. Paste it below. Spaces are fine.",
         "data": {
-          "name": "Display name",
+          "name": "Description (e.g. Work)",
           "email": "Email address",
           "password": "Password or app password",
           "imap_server": "IMAP server",
@@ -55,7 +55,8 @@
       "init": {
         "title": "Account settings",
         "data": {
-          "name": "Display name",
+          "name": "Description",
+          "sender_name": "Name",
           "color": "Colour",
           "signature": "Signature",
           "sent_folder": "Sent folder",
@@ -63,6 +64,9 @@
           "scan_interval": "Check for new mail every"
         },
         "data_description": {
+          "name": "How this account is called in the app, e.g. 'Work'.",
+          "sender_name": "Your name as recipients see it.",
+          "signature": "The closing added below your messages, e.g. 'Kind regards, Alex'.",
           "sent_folder": "Leave empty to detect it automatically (Gmail keeps a copy itself).",
           "users": "Leave empty to allow all administrators."
         }

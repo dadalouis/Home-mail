@@ -20,7 +20,7 @@ from homeassistant.helpers.storage import Store
 
 from . import mail
 from .const import (
-    COLORS, DOMAIN, MAX_SENT_PER_HOUR, OPT_COLOR, OPT_NAME, OPT_SENT_FOLDER, OPT_SIGNATURE, OPT_USERS,
+    COLORS, DOMAIN, MAX_SENT_PER_HOUR, OPT_COLOR, OPT_NAME, OPT_SENDER, OPT_SENT_FOLDER, OPT_SIGNATURE, OPT_USERS,
     PROVIDERS, SIGNAL_UPDATE,
 )
 from .coordinator import account_cfg
@@ -75,7 +75,8 @@ async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
     accounts = {}
     for i, (k, e) in enumerate(_accounts(hass, user).items()):
         o = e.options
-        accounts[k] = {"name": o.get(OPT_NAME) or e.title, "color": o.get(OPT_COLOR) or COLORS[i % len(COLORS)],
+        accounts[k] = {"name": o.get(OPT_NAME) or e.title, "sender": o.get(OPT_SENDER) or s["sender"],
+                       "color": o.get(OPT_COLOR) or COLORS[i % len(COLORS)],
                        "signature": o.get(OPT_SIGNATURE, ""), "address": e.data["email"],
                        "unread": (e.runtime_data.data or {}).get("unread", 0)}
     if s["default"] not in accounts:
@@ -121,7 +122,7 @@ async def ws_settings(hass, connection, msg) -> None:
             if entry is None or not isinstance(w, dict):
                 continue
             opts = dict(entry.options)
-            for k, opt in (("name", OPT_NAME), ("color", OPT_COLOR), ("signature", OPT_SIGNATURE)):
+            for k, opt in (("name", OPT_NAME), ("sender", OPT_SENDER), ("color", OPT_COLOR), ("signature", OPT_SIGNATURE)):
                 if isinstance(w.get(k), str):
                     opts[opt] = w[k][:2000]
             # options are applied live by the app; no reload needed
@@ -300,7 +301,8 @@ async def ws_send(hass, connection, msg) -> None:
     cfg = account_cfg(e)
     sent_folder = e.options.get(OPT_SENT_FOLDER) or (None if mail.is_gmail(cfg) else "AUTO")
     bcc = [cfg["email"]] if settings["bcc_me"] else []
-    r = await _run(hass, connection, msg, mail.send, cfg, settings["sender"], to, cc, msg["subject"], msg["body"],
+    sender = e.options.get(OPT_SENDER) or settings["sender"]  # per account; older per-user setting as fallback
+    r = await _run(hass, connection, msg, mail.send, cfg, sender, to, cc, msg["subject"], msg["body"],
                    msg.get("original_uid"), msg["mode"], sent_folder, bcc, msg["folder"], msg["language"])
     if r is not None:
         sent.append(now)

@@ -38,7 +38,9 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    signature: "Signature", signature_note: "The signature is added below new messages and replies from this account.",
+    signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
+    description: "Description", description_ph: "e.g. Work", your_name: "Your name",
+    account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
     next: "Next", checking: "Checking…", password: "Password", required: "required", servers: "Servers",
     imap_server: "IMAP server", imap_port: "IMAP port", smtp_server: "SMTP server", smtp_port: "SMTP port",
     password_note: "The password is stored only in your Home Assistant, like your other integrations.",
@@ -79,7 +81,9 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    signature: "Handtekening", signature_note: "De handtekening komt automatisch onder nieuwe berichten en antwoorden vanaf dit account.",
+    signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
+    description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
+    account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
     next: "Volgende", checking: "Controleren…", password: "Wachtwoord", required: "vereist", servers: "Servers",
     imap_server: "IMAP-server", imap_port: "IMAP-poort", smtp_server: "SMTP-server", smtp_port: "SMTP-poort",
     password_note: "Het wachtwoord wordt alleen in je eigen Home Assistant bewaard, net als bij je andere integraties.",
@@ -805,7 +809,6 @@ class HomepostApp extends HTMLElement {
             <label class="item"><span class="text"><span class="name">${this.t("bcc_me")}</span><input type="checkbox" data-opt="bcc_me"${s.bcc_me ? " checked" : ""}></span></label>
             <label class="item"><span class="text"><span class="name">${this.t("load_images")}</span><input type="checkbox" data-opt="images"${s.images !== false ? " checked" : ""}></span></label>
             <label class="item"><span class="text"><span class="name">${this.t("default_account")}</span><select data-opt="default">${accs.map((a) => `<option value="${esc(a)}"${a === s.default ? " selected" : ""}>${esc(s.accounts[a].name)}</option>`).join("")}</select></span></label>
-            <label class="item"><span class="text"><span class="name">${this.t("sender_name")}</span><input type="text" data-opt="sender" value="${esc(s.sender || "")}"></span></label>
           </div>
           <div class="explain">${this.t("settings_note")}</div>
         </div></div>`;
@@ -830,16 +833,19 @@ class HomepostApp extends HTMLElement {
     veil.innerHTML = `<div class="sheet grey">
       <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${this.t("back")}</button><b>${esc(a.name)}</b><button class="btn" data-save>${this.t("save")}</button></div>
       <div class="scroll"><div class="gtitle" style="margin-top:18px">${this.t("account")}</div><div class="group">
-        <label class="item"><span class="text"><span class="name">${this.t("name")}</span><input type="text" id="a-name" value="${esc(a.name)}"></span></label>
+        <label class="item"><span class="text"><span class="name">${this.t("name")}</span><input type="text" id="a-sender" value="${esc(a.sender || "")}" placeholder="${this.t("your_name")}"></span></label>
         <div class="item"><span class="text"><span class="name">${this.t("email")}</span><span class="cnt">${esc(a.address || "")}</span></span></div>
+        <label class="item"><span class="text"><span class="name">${this.t("description")}</span><input type="text" id="a-name" value="${esc(a.name)}"></span></label>
         <label class="item"><span class="text"><span class="name">${this.t("color")}</span><select id="a-color">${colors.map((k) => `<option value="${k}"${k === a.color ? " selected" : ""} style="color:${k}">● ${k}</option>`).join("")}</select></span></label>
       </div>
+      <div class="explain" style="margin-top:-14px">${this.t("account_note")}</div>
       <div class="gtitle">${this.t("signature")}</div><div class="group"><div class="item"><textarea id="a-sig">${esc(a.signature || "")}</textarea></div></div>
       <div class="explain">${this.t("signature_note")}</div>
       </div></div>`;
     veil.querySelector("[data-back]").onclick = back;
     veil.querySelector("[data-save]").onclick = async () => {
       await this._saveSettings({ accounts: { [acc]: { name: veil.querySelector("#a-name").value.trim() || a.name,
+        sender: veil.querySelector("#a-sender").value.trim(),
         color: veil.querySelector("#a-color").value, signature: veil.querySelector("#a-sig").value } } });
       back();
     };
@@ -868,7 +874,7 @@ class HomepostApp extends HTMLElement {
       veil.innerHTML = `<div class="sheet grey">
         <div class="sbar"><button class="btn" data-back>${this.t("cancel")}</button><b>${esc(this.t("p_" + provider))}</b><button class="btn" data-next>${this.t("next")}</button></div>
         <div class="scroll">${steps}<div class="group" style="margin-top:22px">
-          <label class="item"><span class="text"><span class="name">${this.t("name")}</span><input type="text" id="n-name"></span></label>
+          <label class="item"><span class="text"><span class="name">${this.t("description")}</span><input type="text" id="n-name" placeholder="${this.t("description_ph")}"></span></label>
           <label class="item"><span class="text"><span class="name">${this.t("email")}</span><input type="email" id="n-email" autocomplete="off" autocapitalize="off" placeholder="name@example.com"></span></label>
           <label class="item"><span class="text"><span class="name">${links ? this.t("app_password") : this.t("password")}</span><input type="password" id="n-pw" autocomplete="new-password" placeholder="${this.t("required")}"></span></label>
         </div>

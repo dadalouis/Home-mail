@@ -14,7 +14,7 @@ from homeassistant.helpers import selector
 from . import mail
 from .const import (
     COLORS, CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_PROVIDER, CONF_SMTP_PORT, CONF_SMTP_SERVER,
-    DEFAULT_SCAN_INTERVAL, DOMAIN, OPT_COLOR, OPT_NAME, OPT_SCAN_INTERVAL, OPT_SENT_FOLDER,
+    DEFAULT_SCAN_INTERVAL, DOMAIN, OPT_COLOR, OPT_NAME, OPT_SCAN_INTERVAL, OPT_SENDER, OPT_SENT_FOLDER,
     OPT_SIGNATURE, OPT_USERS, PROVIDERS,
 )
 
@@ -95,7 +95,7 @@ class HomepostConfigFlow(ConfigFlow, domain=DOMAIN):
                 name = (user_input.get(OPT_NAME) or "").strip() or address
                 used = len(self._async_current_entries())
                 return self.async_create_entry(title=name, data=data, options={
-                    OPT_NAME: name, OPT_COLOR: COLORS[used % len(COLORS)], OPT_SIGNATURE: "",
+                    OPT_NAME: name, OPT_SENDER: "", OPT_COLOR: COLORS[used % len(COLORS)], OPT_SIGNATURE: "",
                     OPT_SENT_FOLDER: "", OPT_USERS: [], OPT_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
                 })
         schema: dict = {
@@ -156,6 +156,7 @@ class HomepostOptionsFlow(_OptionsBase):
         o = self.config_entry.options
         schema = vol.Schema({
             vol.Required(OPT_NAME, default=o.get(OPT_NAME, self.config_entry.title)): str,
+            vol.Optional(OPT_SENDER, default=o.get(OPT_SENDER, "")): str,
             vol.Required(OPT_COLOR, default=o.get(OPT_COLOR, COLORS[0])): selector.SelectSelector(
                 selector.SelectSelectorConfig(options=COLORS, custom_value=True)),
             vol.Optional(OPT_SIGNATURE, default=o.get(OPT_SIGNATURE, "")): selector.TextSelector(

@@ -10,7 +10,7 @@
         "title": "Accountgegevens",
         "description": "Vul het adres en wachtwoord van je mailaccount in. De IMAP- en SMTP-servers staan op de hulppagina's van je provider.",
         "data": {
-          "name": "Weergavenaam",
+          "name": "Beschrijving (bijv. Werk)",
           "email": "E-mailadres",
           "password": "Wachtwoord",
           "imap_server": "IMAP-server",
@@ -23,7 +23,7 @@
         "title": "Accountgegevens",
         "description": "Deze provider accepteert je gewone wachtwoord niet meer in andere apps; er is eenmalig een app-wachtwoord nodig. Dat kost een minuutje:\n\n1. [Zet verificatie in 2 stappen aan]({step1}) (een bevestiging op je telefoon is genoeg).\n2. [Maak een app-wachtwoord]({step2}), noem het 'Home Assistant' en kopieer het.\n3. Plak het hieronder. Spaties mogen.",
         "data": {
-          "name": "Weergavenaam",
+          "name": "Beschrijving (bijv. Werk)",
           "email": "E-mailadres",
           "password": "Wachtwoord of app-wachtwoord",
           "imap_server": "IMAP-server",
@@ -55,7 +55,8 @@
       "init": {
         "title": "Accountinstellingen",
         "data": {
-          "name": "Weergavenaam",
+          "name": "Beschrijving",
+          "sender_name": "Naam",
           "color": "Kleur",
           "signature": "Handtekening",
           "sent_folder": "Map voor verzonden mail",
@@ -63,6 +64,9 @@
           "scan_interval": "Op nieuwe mail controleren elke"
         },
         "data_description": {
+          "name": "Hoe dit account in de app heet, bijv. 'Werk'.",
+          "sender_name": "Je naam zoals ontvangers die zien.",
+          "signature": "De afsluiting onder je berichten, bijv. 'Vriendelijke groet, Sanne'.",
           "sent_folder": "Leeg laten om automatisch te bepalen (Gmail bewaart zelf een kopie).",
           "users": "Leeg laten om alle beheerders toe te staan."
         }
