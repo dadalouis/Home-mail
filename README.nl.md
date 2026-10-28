@@ -67,7 +67,7 @@ Home-mail verstuurt de meldingen zelf, je hoeft niets extra te installeren of in
 
 - **Companion-app**: elk nieuw bericht gaat naar de Home Assistant Companion-app op de telefoons en tablets die aan jouw Home Assistant-gebruiker gekoppeld zijn. Tik erop om het bericht in Home-mail te openen. Op het icoon staat het aantal ongelezen berichten.
 - **Web-app op je beginscherm**: open de web-app op je telefoon en tik op **Meldingen aan** (vereist de Home Assistant-integratie [HTML5 push](https://www.home-assistant.io/integrations/html5/) en een https-adres, zie hieronder).
-- **Weg als gelezen**: als je een bericht in Home-mail leest of verwijdert, verdwijnt de melding weer.
+- **Weg als gelezen**: als je een bericht leest of verwijdert, verdwijnt de melding weer, ook als je het in een andere mail-app leest of verwijdert (Home-mail controleert dit elke keer dat het naar nieuwe mail kijkt, dus binnen ongeveer een minuut).
 
 Iedereen stelt dit voor zichzelf in onder **Instellingen → Meldingen** in Home-mail. De instellingen horen bij jouw Home Assistant-gebruiker, dus anderen zien de jouwe nooit:
 

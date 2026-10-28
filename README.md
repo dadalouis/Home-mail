@@ -73,7 +73,7 @@ Home-mail sends the notifications itself, nothing else to install or set up:
 
 - **Companion app**: every new message is sent to the Home Assistant Companion app on the phones and tablets linked to your Home Assistant user. Tap it to open the message in Home-mail. The icon shows the number of unread messages.
 - **Web app on your home screen**: open the web app on your phone and tap **Turn on** (needs the Home Assistant [HTML5 push](https://www.home-assistant.io/integrations/html5/) integration and an https address, see below).
-- **Gone when read**: reading or removing a message in Home-mail takes its notification away again.
+- **Gone when read**: reading or removing a message takes its notification away again, also when you read or delete it in another mail app (Home-mail checks this every time it looks for new mail, so within about a minute).
 
 Everyone sets this up for themselves under **Settings → Notifications** in Home-mail. The settings belong to your Home Assistant user, so other users never see yours:
 

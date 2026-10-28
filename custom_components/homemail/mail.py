@@ -449,6 +449,19 @@ def new_since(account: str, cfg: dict, first_uid: int, limit: int = 20) -> list[
         close(m)
 
 
+def no_longer_unseen(cfg: dict, uids: list[str]) -> list[str]:
+    """Of these inbox UIDs, the ones that are read or gone now (read or deleted in another app)."""
+    if not uids:
+        return []
+    m = connect(cfg, "INBOX")
+    try:
+        _, data = m.uid("SEARCH", None, f"UID {','.join(str(int(u)) for u in uids)} UNSEEN")
+        unseen = {u.decode() for u in (data[0].split() if data and data[0] else [])}
+        return [u for u in uids if str(u) not in unseen]
+    finally:
+        close(m)
+
+
 def contacts(cfg: dict, limit: int = 300) -> list[dict[str, str]]:
     """Known addresses: senders in the inbox plus recipients in the Sent folder (most recent first)."""
     seen: dict[str, str] = {}
