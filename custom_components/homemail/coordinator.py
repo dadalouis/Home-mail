@@ -14,7 +14,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from . import mail
+from . import mail, notify
 from .const import (
     CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_SMTP_PORT, CONF_SMTP_SERVER, DEFAULT_SCAN_INTERVAL, DOMAIN,
     EVENT_NEW_MAIL, OPT_NAME, OPT_SCAN_INTERVAL, SIGNAL_UPDATE,
@@ -51,6 +51,7 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
         self.mailboxes: list[dict] | None = None  # latest folder list with counters
         self.bodies: OrderedDict[tuple[str, str], dict] = OrderedDict()  # (folder, uid) -> read_message result
         self._prefetching = False
+        self.notified: list[str] = []  # UIDs we sent a notification for and that may still be on a device
 
     def put_body(self, folder: str, uid: str, body: dict) -> None:
         if len(body.get("html", "")) > MAX_BODY:
@@ -62,6 +63,10 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
 
     def forget(self, folder: str, uid: str, gone: bool = False, **flags) -> None:
         """Keep the preloaded data in line with an action done in the app."""
+        if folder == "INBOX" and (gone or flags.get("seen")):
+            if uid in self.notified:
+                self.notified.remove(uid)
+            self.hass.async_create_task(notify.async_clear(self.hass, self.entry, uid))
         if gone:
             self.bodies.pop((folder, uid), None)
         if folder == "INBOX" and self.inbox is not None:
@@ -104,11 +109,24 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
         old = self.data
         if old and st["uidvalidity"] == old["uidvalidity"] and st["uidnext"] > old["uidnext"]:
             await self._fire_new(old["uidnext"], st["unread"])
+        if old and self.notified and (st["unread"] != old["unread"] or st["uidnext"] != old["uidnext"]):
+            await self._clear_read_elsewhere()
         if old != st:
             async_dispatcher_send(self.hass, SIGNAL_UPDATE, self.entry.entry_id, st["unread"])
         if old is None or old.get("uidnext") != st["uidnext"] or old.get("unread") != st["unread"]:
             self.entry.async_create_background_task(self.hass, self._prefetch(), f"{DOMAIN} prefetch")
         return st
+
+    async def _clear_read_elsewhere(self) -> None:
+        """Messages we notified about that were read or deleted in another app: take the notification away."""
+        try:
+            done = await self.hass.async_add_executor_job(mail.no_longer_unseen, self.cfg, list(self.notified))
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Checking read messages failed: %s", err)
+            return
+        for uid in done:
+            self.notified.remove(uid)
+            self.forget("INBOX", uid, seen=True)
 
     async def _fire_new(self, first_uid: int, unread: int) -> None:
         try:
@@ -126,3 +144,8 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
                 "subject": m["subject"], "preview": m["preview"], "message_id": m["message_id"],
                 "date": m["date"], "unread": unread,
             })
+            self.notified = [*self.notified, m["uid"]][-50:]
+            try:
+                await notify.async_notify_new(self.hass, self.entry, m, unread)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("Notifications for new mail failed: %s", err)

@@ -1,5 +1,9 @@
 ### What's new
-- Settings now show the external https address of the app (Home Assistant Cloud or your own domain) when you have one, so it is easy to put on your iPhone home screen. Without it, the address at home is shown with a note that notifications need https.
-- README: step-by-step guide to put the app on your iPhone.
+- **Built-in notifications.** Home-mail now notifies you about new mail itself, on your Companion app and on the web app on your home screen. No blueprint or automation needed any more (the blueprint is removed). Tapping a notification opens the message, the icon shows the unread count, and the notification disappears when you read or delete the message, also in another mail app (within about a minute). Messages read elsewhere are marked as read in Home-mail too.
+- **Per user settings** under Settings → Notifications: which accounts notify, all mail or only your VIP senders, senders that never notify, days of the week, quiet hours, message text on/off, sound on/off, which Companion devices, and a test notification button. Other users never see your settings, and only get notifications for accounts they may use.
+- The `homemail_new_mail` event is still fired for your own automations.
 
-Restart Home Assistant after updating, then reload the app.
+### Good to know
+- Restart Home Assistant after updating.
+- If you used the Home-mail blueprint, delete that automation or you will be notified twice.
+- Web app users: tap **Turn on** in the app once more, so Home-mail knows which device is yours.

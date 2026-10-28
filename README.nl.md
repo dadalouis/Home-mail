@@ -28,6 +28,7 @@
 - Schrijven, beantwoorden, allen beantwoorden en doorsturen (met bijlagen van het origineel), handtekening en kleur per account
 - Adressuggesties uit je inbox en verzonden mail
 - Zoeken (op de server; bij Gmail werkt de Gmail-zoeksyntax)
+- Ingebouwde meldingen op je Companion-app en de web-app op je beginscherm, per gebruiker: kies accounts, afzenders (VIP en gedempt), dagen, stille uren, tekst en geluid
 - Per account een sensor met het aantal ongelezen berichten, en een event `homemail_new_mail`
 - Per account kies je welke Home Assistant-gebruikers het mogen gebruiken (standaard: alleen beheerders)
 - Engels en Nederlands
@@ -60,11 +61,29 @@ De meeste andere providers (eigen domein, mail van je internetprovider) werken m
 - **Dashboardkaart**: voeg een kaart `custom:homemail-card` toe (het mooist in een weergave van het type *Paneel*).
 - **Beginscherm van je telefoon**: open `https://<jouw-home-assistant>/homemail-files/app.html` in Safari/Chrome, log in met je Home Assistant-account en kies *Deel → Zet op beginscherm*.
 
-### 4. Meldingen (optioneel)
+### 4. Meldingen
 
-- **Companion-app**: importeer de blueprint (`blueprints/automation/homemail/new_mail_notification.yaml`) en kies je telefoon.
-- **Web-push naar de beginscherm-app**: stel de Home Assistant-integratie [HTML5 push](https://www.home-assistant.io/integrations/html5/) in; de web-app toont dan een knop "Meldingen aan" en een rood getal met het aantal ongelezen mails.
-- **Eigen automations**: trigger op het event `homemail_new_mail`.
+Home-mail verstuurt de meldingen zelf, je hoeft niets extra te installeren of in te stellen:
+
+- **Companion-app**: elk nieuw bericht gaat naar de Home Assistant Companion-app op de telefoons en tablets die aan jouw Home Assistant-gebruiker gekoppeld zijn. Tik erop om het bericht in Home-mail te openen. Op het icoon staat het aantal ongelezen berichten.
+- **Web-app op je beginscherm**: open de web-app op je telefoon en tik op **Meldingen aan** (vereist de Home Assistant-integratie [HTML5 push](https://www.home-assistant.io/integrations/html5/) en een https-adres, zie hieronder).
+- **Weg als gelezen**: als je een bericht leest of verwijdert, verdwijnt de melding weer, ook als je het in een andere mail-app leest of verwijdert (Home-mail controleert dit elke keer dat het naar nieuwe mail kijkt, dus binnen ongeveer een minuut).
+
+Iedereen stelt dit voor zichzelf in onder **Instellingen → Meldingen** in Home-mail. De instellingen horen bij jouw Home Assistant-gebruiker, dus anderen zien de jouwe nooit:
+
+| Instelling | Wat het doet |
+|---|---|
+| Meldingen | Alles aan of uit |
+| Accounts | Welke van je mailaccounts melden |
+| Welke mail | Alle mail, of alleen afzenders van je VIP-lijst. Plus een lijst afzenders die nooit melden (een adres of een heel domein, één per regel) |
+| Dagen en stille uren | Alleen op de dagen die je kiest, en stil tussen twee tijden (bijvoorbeeld 22:00 tot 07:00) |
+| Tekst, geluid | De tekst van het bericht tonen of alleen het onderwerp; met of zonder geluid |
+| Waar | Companion-app en/of web-app, en per Companion-apparaat |
+| Testmelding | Stuurt een test naar je eigen apparaten |
+
+Berichten die binnenkomen tijdens de stille uren of op een dag die uit staat, melden achteraf niets; de mail staat gewoon klaar als je de app opent.
+
+**Eigen automations**: Home-mail stuurt voor elk nieuw bericht ook het event `homemail_new_mail`. Data: `account`, `account_name`, `account_email`, `uid`, `from_name`, `from_address`, `subject`, `preview`, `message_id`, `date`, `unread`.
 
 ## Meerdere gebruikers, aparte postbussen
 

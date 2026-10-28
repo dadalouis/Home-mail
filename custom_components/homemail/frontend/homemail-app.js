@@ -39,6 +39,13 @@ const T = {
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
     app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen. Tap the link to copy it.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied",
+    notifications: "Notifications", notif_on: "Notifications", notif_note: "Home-mail notifies you about new mail on your Companion app and on the web app on your home screen. These settings are yours alone.",
+    notif_accounts: "Accounts", notif_which: "Which mail", notif_all: "All mail", notif_vip: "Only from my VIP list", notif_vip_list: "VIP senders", notif_mute: "Never notify for",
+    notif_list_note: "One email address or domain per line, for example anna@example.com or example.com.",
+    notif_when: "When", notif_days: "Days", notif_quiet: "Quiet hours", notif_from: "From", notif_to: "Until", notif_quiet_note: "No notifications during quiet hours. The mail itself still arrives.",
+    notif_show: "What you see", notif_preview: "Show message text", notif_sound: "Sound", notif_where: "Where", notif_app: "Companion app", notif_web: "Web app on home screen",
+    notif_no_devices: "No Companion app is linked to your user.", notif_web_none: "Not turned on yet: open the web app on your phone and tap the notifications button.", notif_web_n: "device(s) registered",
+    notif_test: "Send test notification", notif_test_sent: "Test notification sent", notif_test_none: "No device to send to", days: "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
     closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
@@ -83,6 +90,13 @@ const T = {
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
     app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm. Tik op de link om hem te kopiëren.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd",
+    notifications: "Meldingen", notif_on: "Meldingen", notif_note: "Home-mail meldt nieuwe mail op je Companion-app en op de web-app op je beginscherm. Deze instellingen zijn alleen van jou.",
+    notif_accounts: "Accounts", notif_which: "Welke mail", notif_all: "Alle mail", notif_vip: "Alleen van mijn VIP-lijst", notif_vip_list: "VIP-afzenders", notif_mute: "Nooit melden voor",
+    notif_list_note: "Eén e-mailadres of domein per regel, bijvoorbeeld anna@voorbeeld.nl of voorbeeld.nl.",
+    notif_when: "Wanneer", notif_days: "Dagen", notif_quiet: "Stille uren", notif_from: "Van", notif_to: "Tot", notif_quiet_note: "Geen meldingen tijdens de stille uren. De mail zelf komt gewoon binnen.",
+    notif_show: "Wat je ziet", notif_preview: "Tekst van het bericht tonen", notif_sound: "Geluid", notif_where: "Waar", notif_app: "Companion-app", notif_web: "Web-app op beginscherm",
+    notif_no_devices: "Er is geen Companion-app aan jouw gebruiker gekoppeld.", notif_web_none: "Nog niet aangezet: open de web-app op je telefoon en tik op de meldingenknop.", notif_web_n: "apparaat/apparaten aangemeld",
+    notif_test: "Stuur testmelding", notif_test_sent: "Testmelding verstuurd", notif_test_none: "Geen apparaat om naar te sturen", days: "Ma,Di,Wo,Do,Vr,Za,Zo",
     closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
@@ -217,6 +231,10 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item select, .item input[type=text], .item input[type=email], .item input[type=password], .item input[type=number] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; text-align:right; min-width:0; flex:1; }
 .item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 inherit; background:transparent; color:inherit; }
 .item textarea#a-sig { min-height:240px; }
+.item textarea.nl { min-height:70px; padding:10px 0; }
+.item input[type=time] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; }
+.dayb { border:0; border-radius:16px; padding:6px 11px; background:#e9e9eb; color:inherit; font:inherit; font-size:15px; cursor:pointer; }
+.dayb.on { background:var(--blue); color:#fff; }
 .fab { position:absolute; right:18px; bottom:max(22px, env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; border:0; background:var(--card); color:var(--primary-text-color, #000); box-shadow:0 4px 18px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:4; }
 .fab .ic { width:26px; height:26px; }
 .swatches { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0; }
@@ -812,6 +830,7 @@ class HomemailApp extends HTMLElement {
         <div class="scroll"><div class="gtitle" style="margin-top:18px">${this.t("accounts")}</div><div class="group">
           ${accs.map((a) => `<button class="item" data-acc="${esc(a)}"><span class="acc" style="background:${esc(s.accounts[a].color)};width:12px;height:12px;margin:0 6px"></span><span class="text"><span class="name">${esc(s.accounts[a].name)}<span class="sub2">${esc(s.accounts[a].address || "")}</span></span>${svg(IC.next, "chev")}</span></button>`).join("")}
           <button class="item" data-add><span style="width:24px"></span><span class="text"><span class="name">${this.t("add_account")}</span>${svg(IC.next, "chev")}</span></button></div>
+          <div class="group"><button class="item" data-notif><span style="width:24px"></span><span class="text"><span class="name">${this.t("notifications")}</span>${svg(IC.next, "chev")}</span></button></div>
           <div class="gtitle">${this.t("composing")}</div><div class="group">
             <label class="item"><span class="text"><span class="name">${this.t("bcc_me")}</span><input type="checkbox" data-opt="bcc_me"${s.bcc_me ? " checked" : ""}></span></label>
             <label class="item"><span class="text"><span class="name">${this.t("load_images")}</span><input type="checkbox" data-opt="images"${s.images !== false ? " checked" : ""}></span></label>
@@ -825,6 +844,7 @@ class HomemailApp extends HTMLElement {
       url.onfocus = () => url.select();
       url.onclick = () => { url.select(); navigator.clipboard?.writeText(url.value).then(() => this._toast(this.t("copied")), () => {}); };
       veil.querySelector("[data-x]").onclick = close;
+      veil.querySelector("[data-notif]").onclick = () => this._notifyScreen(veil, show);
       veil.querySelectorAll("[data-acc]").forEach((b) => (b.onclick = () => this._accountScreen(veil, b.dataset.acc, show)));
       veil.querySelector("[data-add]").onclick = () => (s.is_admin ? this._addAccount(veil, show) : this._toast(this.t("admin_only")));
       veil.querySelectorAll("[data-opt]").forEach((el) => (el.onchange = () => {
@@ -832,6 +852,58 @@ class HomemailApp extends HTMLElement {
       }));
     };
     show();
+  }
+  _notifyScreen(veil, back) {
+    const s = this._set, n = s.notify, t = (k) => this.t(k);
+    const accs = Object.entries(s.accounts || {});
+    const sw = (k, label, on = n[k]) => `<label class="item"><span class="text"><span class="name">${label}</span><input type="checkbox" data-n="${k}"${on ? " checked" : ""}></span></label>`;
+    const rerender = async (patch) => { await this._saveSettings({ notify: patch }); this._notifyScreen(veil, back); };
+    veil.innerHTML = `<div class="sheet grey">
+      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${t("back")}</button><b>${t("notifications")}</b><span style="width:80px"></span></div>
+      <div class="scroll"><div class="group" style="margin-top:18px">${sw("on", t("notif_on"))}</div>
+      <div class="explain">${t("notif_note")}</div>
+      ${n.on ? `
+      <div class="gtitle">${t("notif_accounts")}</div><div class="group">${accs.map(([id, a]) => `<label class="item"><span class="acc" style="background:${esc(a.color)};width:12px;height:12px;margin:0 6px"></span><span class="text"><span class="name">${esc(a.name)}<span class="sub2">${esc(a.address || "")}</span></span><input type="checkbox" data-accn="${esc(id)}"${n.accounts_off.includes(id) ? "" : " checked"}></span></label>`).join("")}</div>
+      <div class="gtitle">${t("notif_which")}</div><div class="group">
+        <label class="item"><span class="text"><span class="name">${t("notif_which")}</span><select data-n="only"><option value="all"${n.only === "all" ? " selected" : ""}>${t("notif_all")}</option><option value="vip"${n.only === "vip" ? " selected" : ""}>${t("notif_vip")}</option></select></span></label>
+        ${n.only === "vip" ? `<div class="item"><span class="text"><span class="name">${t("notif_vip_list")}</span></span></div><div class="item"><textarea class="nl" data-n="vip">${esc(n.vip)}</textarea></div>` : ""}
+        <div class="item"><span class="text"><span class="name">${t("notif_mute")}</span></span></div><div class="item"><textarea class="nl" data-n="mute">${esc(n.mute)}</textarea></div>
+      </div>
+      <div class="explain">${t("notif_list_note")}</div>
+      <div class="gtitle">${t("notif_when")}</div><div class="group">
+        <div class="item"><span class="text" style="flex-wrap:wrap;gap:6px;padding:10px 14px 10px 0">${t("days").split(",").map((d, i) => `<button type="button" class="dayb${n.days.includes(i) ? " on" : ""}" data-day="${i}">${d}</button>`).join("")}</span></div>
+        ${sw("quiet_on", t("notif_quiet"))}
+        ${n.quiet_on ? `<label class="item"><span class="text"><span class="name">${t("notif_from")}</span><input type="time" data-n="quiet_from" value="${esc(n.quiet_from)}"></span></label>
+        <label class="item"><span class="text"><span class="name">${t("notif_to")}</span><input type="time" data-n="quiet_to" value="${esc(n.quiet_to)}"></span></label>` : ""}
+      </div>
+      <div class="explain">${t("notif_quiet_note")}</div>
+      <div class="gtitle">${t("notif_show")}</div><div class="group">${sw("preview", t("notif_preview"))}${sw("sound", t("notif_sound"))}</div>
+      <div class="gtitle">${t("notif_where")}</div><div class="group">
+        ${sw("app", t("notif_app"))}
+        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d)}</span><input type="checkbox" data-dev="${esc(d)}"${n.devices_off.includes(d) ? "" : " checked"}></span></label>`).join("") : ""}
+        ${sw("web", t("notif_web"))}
+      </div>
+      <div class="explain">${(s.notify_devices || []).length ? "" : t("notif_no_devices") + " "}${s.notify_web ? s.notify_web + " " + t("notif_web_n") : t("notif_web_none")}</div>
+      <div class="group"><button class="item" data-test><span class="text"><span class="name" style="color:var(--blue)">${t("notif_test")}</span></span></button></div>` : ""}
+      </div></div>`;
+    veil.querySelector("[data-back]").onclick = back;
+    veil.querySelectorAll("[data-n]").forEach((el) => (el.onchange = () => {
+      const patch = { [el.dataset.n]: el.type === "checkbox" ? el.checked : el.value };
+      if (el.type === "checkbox" || el.tagName === "SELECT") rerender(patch); else this._saveSettings({ notify: patch });
+    }));
+    veil.querySelectorAll("[data-accn]").forEach((el) => (el.onchange = () => this._saveSettings({ notify: {
+      accounts_off: [...veil.querySelectorAll("[data-accn]")].filter((x) => !x.checked).map((x) => x.dataset.accn) } })));
+    veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => this._saveSettings({ notify: {
+      devices_off: [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev) } })));
+    veil.querySelectorAll("[data-day]").forEach((b) => (b.onclick = () => {
+      const d = Number(b.dataset.day), days = n.days.includes(d) ? n.days.filter((x) => x !== d) : [...n.days, d];
+      rerender({ days });
+    }));
+    const test = veil.querySelector("[data-test]");
+    if (test) test.onclick = async () => {
+      try { const r = await this._call("notify_test"); this._toast(t(r.app + r.web ? "notif_test_sent" : "notif_test_none")); }
+      catch (_) { this._toast(t("save_failed")); }
+    };
   }
   async _saveSettings(changes) {
     try { this._set = await this._call("settings", { changes }); this._toast(this.t("saved")); }
