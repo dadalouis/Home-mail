@@ -96,7 +96,9 @@ Home-mail gebruikt je gewone Home Assistant-adres en -login, dus het werkt overa
 
 ## Over
 
-Home-mail begon als eigen project: een Home Assistant-gebruiker wilde een mail-app op de telefoon die mail niet aan nog een clouddienst geeft en de batterij spaart, en bouwde die samen met Claude (de AI-assistent van Anthropic).
+Ik heb Home-mail gemaakt omdat de Mail-app van de iPhone inkomende mail niet direct pusht, en ik meteen een melding wil zodra er een nieuwe mail binnenkomt. Dus bouwde ik samen met Claude (de AI-assistent van Anthropic) mijn eigen mail-app, die in Home Assistant leeft. Ik deel hem in de hoop dat hij ook voor jou nuttig is.
+
+Feedback en pull requests zijn welkom via [issues](https://github.com/dadalouis/Home-mail/issues).
 
 ## Licentie
 
