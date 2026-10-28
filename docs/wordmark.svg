@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="64" viewBox="0 0 300 64" role="img" aria-label="Home-mail">
+  <style>
+    text { font: 700 48px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; letter-spacing: -1px; }
+    .t { fill: #1c1c1e; }
+    @media (prefers-color-scheme: dark) { .t { fill: #f2f2f7; } }
+  </style>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#20c997"/>
+      <stop offset="1" stop-color="#0a84ff"/>
+    </linearGradient>
+  </defs>
+  <text x="150" y="48" text-anchor="middle"><tspan class="t">Hom</tspan><tspan fill="url(#g)">E</tspan><tspan class="t">-mail</tspan></text>
+</svg>

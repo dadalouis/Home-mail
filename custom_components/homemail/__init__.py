@@ -1,8 +1,8 @@
-"""Homepost: your own mail app inside Home Assistant.
+"""Home-mail: your own mail app inside Home Assistant.
 
 Home Assistant fetches the mail (IMAP) and sends it (SMTP); the phone only shows it. Each config entry is
 one mail account. The app talks to Home Assistant over the websocket API (websocket.py) and is served as a
-sidebar panel, a Lovelace card (custom:homepost-card) and a stand-alone web app (/homepost-files/app.html).
+sidebar panel, a Lovelace card (custom:homemail-card) and a stand-alone web app (/homemail-files/app.html).
 """
 
 from __future__ import annotations
@@ -19,14 +19,14 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, PANEL_ELEMENT, PANEL_URL, URL_FILES, VERSION
-from .coordinator import HomepostCoordinator
+from .coordinator import HomemailCoordinator
 from .websocket import async_register_websocket
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-type HomepostConfigEntry = ConfigEntry[HomepostCoordinator]
+type HomemailConfigEntry = ConfigEntry[HomemailCoordinator]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -35,13 +35,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig(URL_FILES, str(Path(__file__).parent / "frontend"), cache_headers=False)]
     )
-    frontend.add_extra_js_url(hass, f"{URL_FILES}/homepost-card.js?v={VERSION}")
+    frontend.add_extra_js_url(hass, f"{URL_FILES}/homemail-card.js?v={VERSION}")
     async_register_websocket(hass)
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: HomepostConfigEntry) -> bool:
-    coordinator = HomepostCoordinator(hass, entry)
+async def async_setup_entry(hass: HomeAssistant, entry: HomemailConfigEntry) -> bool:
+    coordinator = HomemailCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -50,16 +50,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: HomepostConfigEntry) -> 
             hass,
             frontend_url_path=PANEL_URL,
             webcomponent_name=PANEL_ELEMENT,
-            sidebar_title="Homepost",
+            sidebar_title="Home-mail",
             sidebar_icon="mdi:email-outline",
-            module_url=f"{URL_FILES}/homepost-card.js?v={VERSION}",
+            module_url=f"{URL_FILES}/homemail-card.js?v={VERSION}",
             require_admin=False,
         )
         hass.data[DOMAIN]["panel"] = True
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: HomepostConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: HomemailConfigEntry) -> bool:
     ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     others = [e for e in hass.config_entries.async_entries(DOMAIN)
               if e.entry_id != entry.entry_id and e.state is ConfigEntryState.LOADED]

@@ -1,19 +1,19 @@
 <!doctype html>
-<!-- Homepost web app (add to home screen). Contains no data: login via Home Assistant, mail over the websocket. -->
+<!-- Home-mail web app (add to home screen). Contains no data: login via Home Assistant, mail over the websocket. -->
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Homepost">
+<meta name="apple-mobile-web-app-title" content="Home-mail">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
 <meta name="referrer" content="no-referrer">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
-<title>Homepost</title>
+<title>Home-mail</title>
 <style>
   html, body { margin:0; height:100%; background:#f2f2f7; overscroll-behavior:none; }
   #status { position:fixed; top:env(safe-area-inset-top); left:0; right:0; z-index:30; text-align:center; font:13px -apple-system,system-ui,sans-serif; background:#ff9f0a; color:#fff; padding:4px; }
@@ -24,13 +24,13 @@
   #push button.x { background:transparent; padding:8px; }
   @media (prefers-color-scheme: dark) {
     html, body { background:#000; }
-    homepost-app { --primary-background-color:#000; --card-background-color:#1c1c1e; --secondary-background-color:#2c2c2e; --primary-text-color:#fff; --secondary-text-color:#8e8e93; --divider-color:#38383a; }
+    homemail-app { --primary-background-color:#000; --card-background-color:#1c1c1e; --secondary-background-color:#2c2c2e; --primary-text-color:#fff; --secondary-text-color:#8e8e93; --divider-color:#38383a; }
   }
 </style>
 </head>
 <body>
 <div id="status" hidden></div>
-<homepost-app standalone></homepost-app>
+<homemail-app standalone></homemail-app>
 <script type="module">
   document.documentElement.lang = (navigator.language || "en").slice(0, 2);
   import(`./web.js?v=${Date.now()}`).catch(() => {

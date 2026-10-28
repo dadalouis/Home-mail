@@ -1,5 +1,5 @@
-// Homepost app (iOS Mail style). Used by the sidebar panel, the Lovelace card and the stand-alone web app
-// (app.html, attribute "standalone"). Talks to Home Assistant over the websocket (homepost/* commands);
+// Home-mail app (iOS Mail style). Used by the sidebar panel, the Lovelace card and the stand-alone web app
+// (app.html, attribute "standalone"). Talks to Home Assistant over the websocket (homemail/* commands);
 // messages come straight from the IMAP server, nothing is stored in HA states.
 // Screens: Mailboxes (all folders with counters) -> message list of a folder -> message (iframe without scripts).
 const CSP_ON = "default-src 'none'; img-src https: data:; style-src 'unsafe-inline' https:; font-src https: data:";
@@ -44,7 +44,7 @@ const T = {
     next: "Next", checking: "Checking…", password: "Password", required: "required", servers: "Servers",
     imap_server: "IMAP server", imap_port: "IMAP port", smtp_server: "SMTP server", smtp_port: "SMTP port",
     password_note: "The password is stored only in your Home Assistant, like your other integrations.",
-    account_added: "Account added", admin_only: "Only administrators can add accounts (Settings > Devices & services > Homepost).",
+    account_added: "Account added", admin_only: "Only administrators can add accounts (Settings > Devices & services > Home-mail).",
     no_access: "No mail accounts available for this user. An administrator can add one, or allow you in the account options.",
     hint_gmail: "Google no longer accepts your normal password in other mail apps, so an app password is needed (once).",
     hint_icloud: "Apple no longer accepts your normal password in other mail apps: account.apple.com → Sign-In and Security → App-Specific Passwords.",
@@ -87,7 +87,7 @@ const T = {
     next: "Volgende", checking: "Controleren…", password: "Wachtwoord", required: "vereist", servers: "Servers",
     imap_server: "IMAP-server", imap_port: "IMAP-poort", smtp_server: "SMTP-server", smtp_port: "SMTP-poort",
     password_note: "Het wachtwoord wordt alleen in je eigen Home Assistant bewaard, net als bij je andere integraties.",
-    account_added: "Account toegevoegd", admin_only: "Alleen beheerders kunnen accounts toevoegen (Instellingen > Apparaten en diensten > Homepost).",
+    account_added: "Account toegevoegd", admin_only: "Alleen beheerders kunnen accounts toevoegen (Instellingen > Apparaten en diensten > Home-mail).",
     no_access: "Geen mailaccounts voor deze gebruiker. Een beheerder kan er een toevoegen of je toestaan in de accountopties.",
     hint_gmail: "Google accepteert je gewone wachtwoord niet meer in andere mail-apps, daarom is er (eenmalig) een app-wachtwoord nodig.",
     hint_icloud: "Apple accepteert je gewone wachtwoord niet meer in andere mail-apps: account.apple.com → Inloggen en beveiliging → App-specifieke wachtwoorden.",
@@ -216,6 +216,9 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 inherit; background:transparent; color:inherit; }
 .fab { position:absolute; right:18px; bottom:max(22px, env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; border:0; background:var(--card); color:var(--primary-text-color, #000); box-shadow:0 4px 18px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:4; }
 .fab .ic { width:26px; height:26px; }
+.swatches { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0; }
+.sw { width:28px; height:28px; border-radius:50%; border:0; padding:0; cursor:pointer; box-shadow:0 0 0 2px var(--card); }
+.sw.on { box-shadow:0 0 0 2px var(--card), 0 0 0 4px currentColor; color:var(--primary-text-color, #000); }
 .explain { margin:-14px 22px 22px; font-size:13px; color:var(--grey); line-height:1.35; }
 .error { color:#ff3b30; }
 .veil { position:absolute; inset:0; z-index:10; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; }
@@ -242,14 +245,14 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 }
 `;
 
-class HomepostApp extends HTMLElement {
+class HomemailApp extends HTMLElement {
   constructor() {
     super();
     this._view = { account: "all", folder: "INBOX", kind: "inbox", name: null }; // current folder; name null = "All Inboxes"
     this._search = ""; this._msgs = []; this._sel = null; this._open = null; this._busy = false; this._errors = [];
     this._set = { accounts: {}, default: "", images: true }; this._mb = null; this._contacts = [];
-    this._unreadOnly = load("homepost_unread_only", false);
-    this._closed = load("homepost_closed", {}); // collapsed accounts on the Mailboxes screen
+    this._unreadOnly = load("homemail_unread_only", false);
+    this._closed = load("homemail_closed", {}); // collapsed accounts on the Mailboxes screen
     // a property set before the upgrade would hide the setter
     for (const p of ["hass"]) if (Object.prototype.hasOwnProperty.call(this, p)) { const v = this[p]; delete this[p]; this[p] = v; }
   }
@@ -293,17 +296,17 @@ class HomepostApp extends HTMLElement {
   _viewName() { return this._view.name || this.t("all_inboxes"); }
   _mbOpen() { return this._root?.getElementById("app").classList.contains("mb"); }
 
-  // Live counters: homepost/subscribe pushes whenever an inbox changes; refresh the list then.
+  // Live counters: homemail/subscribe pushes whenever an inbox changes; refresh the list then.
   _subscribe() {
     const c = this._hass?.connection; if (!c?.subscribeMessage) return;
     this._unsub?.then((u) => u && u()).catch(() => {});
     this._conn = c;
     let first = true;
     this._unsub = c.subscribeMessage((ev) => {
-      this.dispatchEvent(new CustomEvent("homepost-unread", { detail: ev, bubbles: true, composed: true }));
+      this.dispatchEvent(new CustomEvent("homemail-unread", { detail: ev, bubbles: true, composed: true }));
       if (first) { first = false; return; }
       this._load(true); if (this._mbOpen()) this._loadMb();
-    }, { type: "homepost/subscribe" }).catch(() => null);
+    }, { type: "homemail/subscribe" }).catch(() => null);
   }
 
   _build() {
@@ -332,7 +335,7 @@ class HomepostApp extends HTMLElement {
         <section class="reader" id="reader"></section>
       </div>`;
     const $ = (i) => this._root.getElementById(i);
-    $("filter").onclick = () => { this._unreadOnly = !this._unreadOnly; store("homepost_unread_only", this._unreadOnly); $("filter").classList.toggle("on", this._unreadOnly); this._renderList(); };
+    $("filter").onclick = () => { this._unreadOnly = !this._unreadOnly; store("homemail_unread_only", this._unreadOnly); $("filter").classList.toggle("on", this._unreadOnly); this._renderList(); };
     $("search").onkeydown = (e) => { if (e.key === "Enter") { this._search = e.target.value.trim(); this._load(); } };
     $("search").oninput = (e) => { if (!e.target.value && this._search) { this._search = ""; this._load(); } };
     $("refresh").onclick = () => this._load();
@@ -345,7 +348,7 @@ class HomepostApp extends HTMLElement {
       bar.className = "toolbar";
       this._menuBtn = document.createElement("ha-menu-button");
       const ttl = document.createElement("span");
-      ttl.className = "ttl"; ttl.textContent = "Homepost";
+      ttl.className = "ttl"; ttl.textContent = "Home-mail";
       const fill = document.createElement("span");
       fill.style.flex = "1";
       const row = $("settings").closest(".row1");
@@ -370,7 +373,7 @@ class HomepostApp extends HTMLElement {
   }
 
   async _call(type, data = {}, retry = true) {
-    try { return await this._hass.connection.sendMessagePromise({ type: "homepost/" + type, ...data }); }
+    try { return await this._hass.connection.sendMessagePromise({ type: "homemail/" + type, ...data }); }
     catch (e) {
       const msg = e?.message || e?.code || String(e);
       // connection hiccup (e.g. phone back from the background): try once more; real errors come straight through
@@ -432,7 +435,7 @@ class HomepostApp extends HTMLElement {
   }
   _mbClick(e) {
     const k = e.target.closest("[data-fold]");
-    if (k) { this._closed[k.dataset.fold] = !this._closed[k.dataset.fold]; store("homepost_closed", this._closed); this._renderMb(); return; }
+    if (k) { this._closed[k.dataset.fold] = !this._closed[k.dataset.fold]; store("homemail_closed", this._closed); this._renderMb(); return; }
     const b = e.target.closest("[data-folder]"); if (!b) return;
     this._view = { account: b.dataset.acc, folder: b.dataset.folder, kind: b.dataset.kind, name: b.dataset.name || null };
     this._msgs = []; this._sel = null; this._search = ""; this._root.getElementById("search").value = "";
@@ -836,17 +839,23 @@ class HomepostApp extends HTMLElement {
         <label class="item"><span class="text"><span class="name">${this.t("name")}</span><input type="text" id="a-sender" value="${esc(a.sender || "")}" placeholder="${this.t("your_name")}"></span></label>
         <div class="item"><span class="text"><span class="name">${this.t("email")}</span><span class="cnt">${esc(a.address || "")}</span></span></div>
         <label class="item"><span class="text"><span class="name">${this.t("description")}</span><input type="text" id="a-name" value="${esc(a.name)}"></span></label>
-        <label class="item"><span class="text"><span class="name">${this.t("color")}</span><select id="a-color">${colors.map((k) => `<option value="${k}"${k === a.color ? " selected" : ""} style="color:${k}">● ${k}</option>`).join("")}</select></span></label>
+        <div class="item"><span class="text"><span class="name">${this.t("color")}</span><span class="swatches" id="a-color" data-v="${esc(a.color || colors[0])}">${colors.map((k) => `<button type="button" class="sw${k === (a.color || colors[0]) ? " on" : ""}" data-c="${k}" style="background:${k}" aria-label="${k}"></button>`).join("")}</span></span></div>
       </div>
       <div class="explain" style="margin-top:-14px">${this.t("account_note")}</div>
       <div class="gtitle">${this.t("signature")}</div><div class="group"><div class="item"><textarea id="a-sig">${esc(a.signature || "")}</textarea></div></div>
       <div class="explain">${this.t("signature_note")}</div>
       </div></div>`;
     veil.querySelector("[data-back]").onclick = back;
+    const sw = veil.querySelector("#a-color");
+    sw.onclick = (e) => { // colour swatches like iOS
+      const b = e.target.closest("[data-c]"); if (!b) return;
+      sw.dataset.v = b.dataset.c;
+      sw.querySelectorAll(".sw").forEach((x) => x.classList.toggle("on", x === b));
+    };
     veil.querySelector("[data-save]").onclick = async () => {
       await this._saveSettings({ accounts: { [acc]: { name: veil.querySelector("#a-name").value.trim() || a.name,
         sender: veil.querySelector("#a-sender").value.trim(),
-        color: veil.querySelector("#a-color").value, signature: veil.querySelector("#a-sig").value } } });
+        color: veil.querySelector("#a-color").dataset.v, signature: veil.querySelector("#a-sig").value } } });
       back();
     };
   }
@@ -906,4 +915,4 @@ class HomepostApp extends HTMLElement {
     choose();
   }
 }
-if (!customElements.get("homepost-app")) customElements.define("homepost-app", HomepostApp);
+if (!customElements.get("homemail-app")) customElements.define("homemail-app", HomemailApp);

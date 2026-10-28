@@ -1,4 +1,4 @@
-"""IMAP/SMTP logic for Homepost. Plain blocking Python (stdlib only); always run in an executor.
+"""IMAP/SMTP logic for Home-mail. Plain blocking Python (stdlib only); always run in an executor.
 
 `cfg` is a dict with: email, password, imap_server, imap_port, smtp_server, smtp_port.
 UIDs are real IMAP UIDs (stable), returned as strings. Nothing is stored or logged.

@@ -1,4 +1,4 @@
-// Homepost service worker. Receives web push from the HA html5 integration
+// Home-mail service worker. Receives web push from the HA html5 integration
 // (payload: title, body, tag, data{message_id, unread}; or {dismiss: true, tag} to remove a notification).
 // Tapping a notification opens the web app with that message.
 const SCOPE = new URL(".", self.location.href).pathname;
@@ -9,7 +9,7 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (e) => {
   let p = {};
-  try { p = e.data ? e.data.json() : {}; } catch (_) { p = { title: "Homepost", body: e.data ? e.data.text() : "" }; }
+  try { p = e.data ? e.data.json() : {}; } catch (_) { p = { title: "Home-mail", body: e.data ? e.data.text() : "" }; }
   const n = Number(p.data?.unread);
   const badge = Number.isFinite(n) && "setAppBadge" in navigator
     ? (n > 0 ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {}) : Promise.resolve();
@@ -17,7 +17,7 @@ self.addEventListener("push", (e) => {
     e.waitUntil(Promise.all([badge, self.registration.getNotifications(p.tag ? { tag: p.tag } : {}).then((l) => l.forEach((x) => x.close()))]));
     return;
   }
-  e.waitUntil(Promise.all([badge, self.registration.showNotification(p.title || "Homepost", {
+  e.waitUntil(Promise.all([badge, self.registration.showNotification(p.title || "Home-mail", {
     body: p.body || "",
     tag: p.tag,
     data: p.data || {},

@@ -8,28 +8,28 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, OPT_NAME
-from .coordinator import HomepostCoordinator
+from .coordinator import HomemailCoordinator
 
 
 async def async_setup_entry(hass, entry, async_add_entities: AddEntitiesCallback) -> None:
     async_add_entities([UnreadSensor(entry.runtime_data)])
 
 
-class UnreadSensor(CoordinatorEntity[HomepostCoordinator], SensorEntity):
+class UnreadSensor(CoordinatorEntity[HomemailCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "unread"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "emails"
     _attr_icon = "mdi:email-outline"
 
-    def __init__(self, coordinator: HomepostCoordinator) -> None:
+    def __init__(self, coordinator: HomemailCoordinator) -> None:
         super().__init__(coordinator)
         entry = coordinator.entry
         self._attr_unique_id = f"{entry.entry_id}_unread"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.options.get(OPT_NAME) or entry.title,
-            manufacturer="Homepost",
+            manufacturer="Home-mail",
             model=entry.data["email"],
             entry_type=DeviceEntryType.SERVICE,
         )

@@ -1,6 +1,6 @@
 {
-  "name": "Homepost",
-  "short_name": "Homepost",
+  "name": "Home-mail",
+  "short_name": "Home-mail",
   "start_url": "app.html",
   "scope": "./",
   "display": "standalone",

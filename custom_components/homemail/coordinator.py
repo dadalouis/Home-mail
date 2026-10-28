@@ -35,7 +35,7 @@ def account_cfg(entry: ConfigEntry) -> dict[str, Any]:
     }
 
 
-class HomepostCoordinator(DataUpdateCoordinator[dict[str, int]]):
+class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
     """data = {"unread": n, "uidnext": n, "uidvalidity": n}."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:

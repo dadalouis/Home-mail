@@ -44,7 +44,7 @@ def _needs_app_password(provider: str, password: str) -> bool:
     return False
 
 
-class HomepostConfigFlow(ConfigFlow, domain=DOMAIN):
+class HomemailConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self) -> None:
@@ -53,7 +53,7 @@ class HomepostConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        return HomepostOptionsFlow()
+        return HomemailOptionsFlow()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
@@ -146,7 +146,7 @@ class HomepostConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-class HomepostOptionsFlow(_OptionsBase):
+class HomemailOptionsFlow(_OptionsBase):
     """Display name, colour, signature, sent folder, who may use this account, poll interval."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

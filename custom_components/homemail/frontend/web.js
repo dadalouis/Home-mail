@@ -1,13 +1,13 @@
-// Homepost stand-alone web app (app.html): its own Home Assistant login without external libraries.
+// Home-mail stand-alone web app (app.html): its own Home Assistant login without external libraries.
 // Login uses the normal HA login page (password + 2FA); afterwards only the refresh token is kept in
 // localStorage (like the HA frontend itself). The page contains no data; everything comes over the websocket.
 const V = new URL(import.meta.url).searchParams.get("v") || "0";
-await import(`./homepost-app.js?v=${V}`);
+await import(`./homemail-app.js?v=${V}`);
 
 const BASE = location.origin;
 const CLIENT = BASE + "/";
 const RETURN = BASE + location.pathname;
-const KEY = "homepost_tokens";
+const KEY = "homemail_tokens";
 const LANG = (navigator.language || "en").slice(0, 2).toLowerCase();
 const TXT = {
   en: { reconnect: "Reconnecting…", offline: "No connection, retrying…", push: "Get mail notifications from this app", on: "Turn on", busy: "Busy…",
@@ -23,7 +23,7 @@ const status = (x) => { const s = document.getElementById("status"); s.textConte
 
 function toLogin() {
   const state = crypto.getRandomValues(new Uint32Array(2)).join("-");
-  sessionStorage.setItem("homepost_state", state);
+  sessionStorage.setItem("homemail_state", state);
   location.href = `${BASE}/auth/authorize?response_type=code&client_id=${encodeURIComponent(CLIENT)}&redirect_uri=${encodeURIComponent(RETURN)}&state=${encodeURIComponent(state)}`;
 }
 
@@ -51,8 +51,8 @@ async function validToken() {
 // Back from the login page with ?code=
 const p = new URLSearchParams(location.search);
 if (p.get("code")) {
-  const ok = p.get("state") && p.get("state") === sessionStorage.getItem("homepost_state");
-  sessionStorage.removeItem("homepost_state");
+  const ok = p.get("state") && p.get("state") === sessionStorage.getItem("homemail_state");
+  sessionStorage.removeItem("homemail_state");
   history.replaceState(null, "", location.pathname);
   if (ok) {
     try { keep(await tokenRequest({ grant_type: "authorization_code", code: p.get("code") })); }
@@ -60,7 +60,7 @@ if (p.get("code")) {
   }
 }
 
-const app = document.querySelector("homepost-app");
+const app = document.querySelector("homemail-app");
 let ws = null, seq = 0, pending = new Map(), delay = 1000;
 const subs = new Set(); // {msg, cb, id}: re-sent after every reconnect
 
@@ -103,7 +103,7 @@ function sendSub(sub) {
 }
 
 // Red badge on the home-screen icon (iOS 16.4+, only with notifications on): total unread of all accounts.
-app.addEventListener("homepost-unread", (e) => {
+app.addEventListener("homemail-unread", (e) => {
   const n = Number(e.detail?.total) || 0;
   try { if ("setAppBadge" in navigator) (n > 0 ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {}); } catch (_) {}
 });
@@ -151,7 +151,7 @@ connect();
 
 // ---------- notifications (web push via the HA html5 integration, optional) ----------
 // iOS: only in the app on the home screen, and asking for permission is only allowed after a tap.
-// After registering, HA gets a notify entity for this device; the Homepost blueprint can use it.
+// After registering, HA gets a notify entity for this device; the Home-mail blueprint can use it.
 const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(s.length / 4) * 4, "=")), (c) => c.charCodeAt(0));
 
 async function pushOn(btn, key) {
@@ -164,10 +164,10 @@ async function pushOn(btn, key) {
     const r = await fetch(`${BASE}/api/notify.html5`, {
       method: "POST",
       headers: { Authorization: `Bearer ${await validToken()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subscription: sub.toJSON(), browser: "chrome", name: "Homepost" }),
+      body: JSON.stringify({ subscription: sub.toJSON(), browser: "chrome", name: "Home-mail" }),
     });
     if (!r.ok) throw new Error(`${t("refused")} (${r.status})`);
-    try { localStorage.setItem("homepost_push", sub.endpoint); } catch (_) {}
+    try { localStorage.setItem("homemail_push", sub.endpoint); } catch (_) {}
     btn.closest("#push").remove();
   } catch (e) {
     btn.disabled = false; btn.textContent = t("retry");
@@ -179,7 +179,7 @@ async function pushBar() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return; // plain Safari: no push
   const reg = await navigator.serviceWorker.register("sw.js", { scope: new URL(".", location.href).pathname });
   const sub = await reg.pushManager.getSubscription().catch(() => null);
-  let known = null; try { known = localStorage.getItem("homepost_push"); } catch (_) {}
+  let known = null; try { known = localStorage.getItem("homemail_push"); } catch (_) {}
   if (sub && Notification.permission === "granted" && known === sub.endpoint) return;
   // Only offer it when the html5 integration is set up in HA.
   for (let i = 0; i < 20 && ws?.readyState !== 1; i++) await new Promise((r) => setTimeout(r, 500));

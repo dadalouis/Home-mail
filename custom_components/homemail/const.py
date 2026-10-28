@@ -1,6 +1,6 @@
-"""Constants for Homepost."""
+"""Constants for Home-mail."""
 
-DOMAIN = "homepost"
+DOMAIN = "homemail"
 VERSION = "0.1.0"
 
 CONF_PROVIDER = "provider"
@@ -29,11 +29,11 @@ PROVIDERS = {
 
 COLORS = ["#0a84ff", "#ea4335", "#f5a623", "#34c759", "#af52de", "#ff2d55", "#8e8e93"]
 
-EVENT_NEW_MAIL = "homepost_new_mail"
-SIGNAL_UPDATE = "homepost_update"
+EVENT_NEW_MAIL = "homemail_new_mail"
+SIGNAL_UPDATE = "homemail_update"
 
-URL_FILES = "/homepost-files"
-PANEL_URL = "homepost"
-PANEL_ELEMENT = "homepost-panel"
+URL_FILES = "/homemail-files"
+PANEL_URL = "homemail"
+PANEL_ELEMENT = "homemail-panel"
 
 MAX_SENT_PER_HOUR = 20

@@ -100,7 +100,7 @@ async def _run(hass, connection, msg, func, *args):
 
 # ---------- commands ----------
 
-@websocket_api.websocket_command({vol.Required("type"): "homepost/settings", vol.Optional("changes"): dict})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/settings", vol.Optional("changes"): dict})
 @websocket_api.async_response
 async def ws_settings(hass, connection, msg) -> None:
     """Read or change settings. User options are per HA user; account options are shared (name, colour, signature)."""
@@ -131,7 +131,7 @@ async def ws_settings(hass, connection, msg) -> None:
 
 
 @websocket_api.websocket_command({
-    vol.Required("type"): "homepost/list",
+    vol.Required("type"): "homemail/list",
     vol.Optional("account", default="all"): str,
     vol.Optional("folder", default="INBOX"): str,
     vol.Optional("limit", default=50): vol.All(int, vol.Range(min=1, max=200)),
@@ -174,7 +174,7 @@ async def ws_list(hass, connection, msg) -> None:
     connection.send_result(msg["id"], {"messages": rows, "errors": errors})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homepost/mailboxes", vol.Optional("cached", default=False): bool})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/mailboxes", vol.Optional("cached", default=False): bool})
 @websocket_api.async_response
 async def ws_mailboxes(hass, connection, msg) -> None:
     """All folders with counters, per account (accounts in parallel).
@@ -201,7 +201,7 @@ async def ws_mailboxes(hass, connection, msg) -> None:
 
 
 @websocket_api.websocket_command({
-    vol.Required("type"): "homepost/read",
+    vol.Required("type"): "homemail/read",
     vol.Required("account"): str,
     vol.Required("uid"): vol.Coerce(str),
     vol.Optional("folder", default="INBOX"): str,
@@ -236,7 +236,7 @@ async def ws_read(hass, connection, msg) -> None:
 
 
 @websocket_api.websocket_command({
-    vol.Required("type"): "homepost/action",
+    vol.Required("type"): "homemail/action",
     vol.Required("account"): str,
     vol.Required("uid"): vol.Coerce(str),
     vol.Required("action"): vol.In(mail.ACTIONS),
@@ -266,7 +266,7 @@ def _addresses(x) -> list[str]:
 
 
 @websocket_api.websocket_command({
-    vol.Required("type"): "homepost/send",
+    vol.Required("type"): "homemail/send",
     vol.Required("account"): str,
     vol.Required("to"): vol.Any(list, str),
     vol.Optional("cc", default=[]): vol.Any(list, str),
@@ -309,7 +309,7 @@ async def ws_send(hass, connection, msg) -> None:
         connection.send_result(msg["id"], r)
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homepost/contacts"})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/contacts"})
 @websocket_api.async_response
 async def ws_contacts(hass, connection, msg) -> None:
     """Known addresses from all accounts of this user (cached for an hour, memory only)."""
@@ -332,7 +332,7 @@ async def ws_contacts(hass, connection, msg) -> None:
 
 @websocket_api.require_admin
 @websocket_api.websocket_command({
-    vol.Required("type"): "homepost/add_account",
+    vol.Required("type"): "homemail/add_account",
     vol.Required("provider"): vol.In(list(PROVIDERS)),
     vol.Optional("name", default=""): str,
     vol.Required("email"): str,
@@ -363,7 +363,7 @@ async def ws_add_account(hass, connection, msg) -> None:
     connection.send_error(msg["id"], "invalid", (step.get("errors") or {}).get("base") or step.get("reason") or "failed")
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homepost/subscribe"})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/subscribe"})
 @callback
 def ws_subscribe(hass, connection, msg) -> None:
     """Pushes {account, unread, total} whenever an inbox counter changes (and once right away)."""

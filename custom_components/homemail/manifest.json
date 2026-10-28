@@ -1,13 +1,13 @@
 {
-  "domain": "homepost",
-  "name": "Homepost",
+  "domain": "homemail",
+  "name": "Home-mail",
   "codeowners": ["@dadalouis"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],
-  "documentation": "https://github.com/dadalouis/ha-homepost",
+  "documentation": "https://github.com/dadalouis/Home-mail",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/dadalouis/ha-homepost/issues",
+  "issue_tracker": "https://github.com/dadalouis/Home-mail/issues",
   "requirements": [],
   "version": "0.1.0"
 }
