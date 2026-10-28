@@ -38,7 +38,7 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
+    closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
     next: "Next", checking: "Checking…", password: "Password", required: "required", servers: "Servers",
@@ -81,7 +81,7 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
+    closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
     next: "Volgende", checking: "Controleren…", password: "Wachtwoord", required: "vereist", servers: "Servers",
@@ -678,7 +678,7 @@ class HomemailApp extends HTMLElement {
     if (!accs.length) { this._toast(this.t("no_access")); return; }
     const account = m?.account || (this._view.account !== "all" ? this._view.account : this._set.default) || accs[0];
     const own = accs.map((a) => (this._set.accounts[a].address || "").toLowerCase());
-    const sig = (a) => this._set.accounts[a]?.signature || "";
+    const sig = (a) => this._set.accounts[a]?.signature || `${this.t("closing")}\n\n${this._set.user_name || ""}`.trimEnd();
     let to = [], cc = [], subject = "";
     if (m && mode !== "forward") {
       to = [m.reply_to || m.address];
