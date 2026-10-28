@@ -214,6 +214,7 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item input[type=checkbox]:checked { background:#34c759; } .item input[type=checkbox]:checked::after { left:22px; }
 .item select, .item input[type=text], .item input[type=email], .item input[type=password], .item input[type=number] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; text-align:right; min-width:0; flex:1; }
 .item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 inherit; background:transparent; color:inherit; }
+.item textarea#a-sig { min-height:240px; }
 .fab { position:absolute; right:18px; bottom:max(22px, env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; border:0; background:var(--card); color:var(--primary-text-color, #000); box-shadow:0 4px 18px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:4; }
 .fab .ic { width:26px; height:26px; }
 .swatches { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0; }
