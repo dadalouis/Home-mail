@@ -40,6 +40,8 @@
 
 ### 1. Install with HACS
 
+[![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dadalouis&repository=Home-mail&category=integration)
+
 1. In Home Assistant open **HACS**, open the ⋮ menu → **Custom repositories**.
 2. Add `https://github.com/dadalouis/Home-mail` with type **Integration**.
 3. Search for **Home-mail**, click **Download**, then **restart Home Assistant**.
