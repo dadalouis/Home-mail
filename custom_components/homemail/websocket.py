@@ -16,12 +16,13 @@ from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.helpers.storage import Store
 
 from . import mail
 from .const import (
     COLORS, DOMAIN, MAX_SENT_PER_HOUR, OPT_COLOR, OPT_NAME, OPT_SENDER, OPT_SENT_FOLDER, OPT_SIGNATURE, OPT_USERS,
-    PROVIDERS, SIGNAL_UPDATE,
+    PROVIDERS, SIGNAL_UPDATE, URL_FILES,
 )
 from .coordinator import account_cfg
 
@@ -68,6 +69,17 @@ async def _store(hass: HomeAssistant) -> tuple[Store, dict]:
     return data["store"], data["settings"]
 
 
+def _app_urls(hass: HomeAssistant) -> dict[str, str]:
+    """Addresses of the web app: the external (https when possible) one first, plus the one at home."""
+    urls: dict[str, str] = {}
+    for key, kwargs in (("external", {"allow_internal": False, "prefer_cloud": True}), ("internal", {"allow_external": False})):
+        try:
+            urls[key] = get_url(hass, **kwargs).rstrip("/") + f"{URL_FILES}/app.html"
+        except NoURLAvailableError:
+            pass
+    return urls
+
+
 async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
     """Settings as the app sees them: per-user options plus the accounts this user may use."""
     _, all_settings = await _store(hass)
@@ -81,7 +93,8 @@ async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
                        "unread": (e.runtime_data.data or {}).get("unread", 0)}
     if s["default"] not in accounts:
         s["default"] = next(iter(accounts), "")
-    return {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or ""}
+    return {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or "",
+            "app_urls": _app_urls(hass)}
 
 
 def _err(err: Exception) -> str:

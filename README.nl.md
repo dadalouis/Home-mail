@@ -87,6 +87,15 @@ Goed om te weten:
 
 Home-mail gebruikt je gewone Home Assistant-adres en -login, dus het werkt overal waar Home Assistant werkt. Voor meldingen, het rode getal en de beginscherm-app is **HTTPS** nodig (Nabu Casa, eigen domein via bijvoorbeeld Cloudflare Tunnel, of een VPN naar een https-adres). Via alleen `http://<ip>:8123` thuis kun je wel lezen en versturen.
 
+## De app op je iPhone zetten
+
+1. Open op je iPhone Safari en ga naar het app-adres. Je vindt het onderaan de Home-mail-instellingen (tik erop om het te kopiëren). Het ziet eruit als `https://<jouw-home-assistant>/homemail-files/app.html`.
+2. Log in met je Home Assistant-account.
+3. Tik op **Deel** → **Zet op beginscherm** → **Voeg toe**.
+4. Open Home-mail vanaf je beginscherm. Voor meldingen en het rode getal met ongelezen mails tik je in de app op **Meldingen aan**.
+
+Gebruik het **https**-adres (Home Assistant Cloud, eigen domein of een VPN naar een https-adres). Met alleen `http://<ip>:8123` kun je wel mail lezen en versturen, maar iOS staat dan geen meldingen of getal toe. Zie [Toegang van buitenaf](#toegang-van-buitenaf).
+
 ## Hoe het werkt
 
 - Elk mailaccount is een eigen koppeling. Het wachtwoord staat alleen in je eigen Home Assistant en wordt nooit gelogd.

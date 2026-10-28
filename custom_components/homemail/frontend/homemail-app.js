@@ -38,7 +38,7 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen. Tap the link to copy it.", copied: "Copied",
+    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen. Tap the link to copy it.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied",
     closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
@@ -82,7 +82,7 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm. Tik op de link om hem te kopiëren.", copied: "Gekopieerd",
+    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm. Tik op de link om hem te kopiëren.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd",
     closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
@@ -806,6 +806,7 @@ class HomemailApp extends HTMLElement {
     const close = () => { veil.remove(); this._loadMb(); };
     const show = () => {
       const s = this._set, accs = Object.keys(s.accounts || {});
+      const appUrl = s.app_urls?.external || s.app_urls?.internal || location.origin + "/homemail-files/app.html";
       veil.innerHTML = `<div class="sheet grey">
         <div class="sbar"><span style="width:80px"></span><b>${this.t("settings")}</b><button class="btn" data-x style="width:80px;justify-content:flex-end">${this.t("done")}</button></div>
         <div class="scroll"><div class="gtitle" style="margin-top:18px">${this.t("accounts")}</div><div class="group">
@@ -817,8 +818,8 @@ class HomemailApp extends HTMLElement {
             <label class="item"><span class="text"><span class="name">${this.t("default_account")}</span><select data-opt="default">${accs.map((a) => `<option value="${esc(a)}"${a === s.default ? " selected" : ""}>${esc(s.accounts[a].name)}</option>`).join("")}</select></span></label>
           </div>
           <div class="explain">${this.t("settings_note")}</div>
-          <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(location.origin + "/homemail-files/app.html")}" style="flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"></div></div>
-          <div class="explain">${this.t("app_note")}</div>
+          <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(appUrl)}" style="flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"></div></div>
+          <div class="explain">${this.t("app_note")}${appUrl.startsWith("https:") ? "" : " " + this.t("app_note_http")}</div>
         </div></div>`;
       const url = veil.querySelector("#app-url");
       url.onfocus = () => url.select();
