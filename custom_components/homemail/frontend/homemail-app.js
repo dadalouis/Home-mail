@@ -38,7 +38,7 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", copy_manual: "Selected: press and hold to copy", older: "Load older mail", period: "Mail in this app", folders_app: "Folders in this app", folders_all: "All folders", folders_hidden: "{n} hidden", folders_note: "Hidden folders are not shown or counted in this app. They stay on the server and in your other apps.",
+    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", copy_manual: "Selected: press and hold to copy", rename: "Name for this device (only shown here; empty = original name)", older: "Load older mail", period: "Mail in this app", folders_app: "Folders in this app", folders_all: "All folders", folders_hidden: "{n} hidden", folders_note: "Hidden folders are not shown or counted in this app. They stay on the server and in your other apps.",
     notifications: "Notifications", notif_on: "Notifications", notif_note: "Home-mail notifies you about new mail on your Companion app and on the web app on your home screen. These settings are yours alone.",
     notif_accounts: "Accounts", notif_which: "Which mail", notif_all: "All mail", notif_vip: "Only from my VIP list", notif_vip_list: "VIP senders", notif_mute: "Never notify for",
     notif_list_note: "One email address or domain per line, for example anna@example.com or example.com.",
@@ -100,7 +100,7 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", copy_manual: "Geselecteerd: houd ingedrukt om te kopiëren", older: "Oudere mail laden", period: "Mail in deze app", folders_app: "Mappen in deze app", folders_all: "Alle mappen", folders_hidden: "{n} verborgen", folders_note: "Verborgen mappen worden in deze app niet getoond of geteld. Ze blijven op de server en in je andere apps.",
+    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", copy_manual: "Geselecteerd: houd ingedrukt om te kopiëren", rename: "Naam voor dit apparaat (alleen hier zichtbaar; leeg = oorspronkelijke naam)", older: "Oudere mail laden", period: "Mail in deze app", folders_app: "Mappen in deze app", folders_all: "Alle mappen", folders_hidden: "{n} verborgen", folders_note: "Verborgen mappen worden in deze app niet getoond of geteld. Ze blijven op de server en in je andere apps.",
     notifications: "Meldingen", notif_on: "Meldingen", notif_note: "Home-mail meldt nieuwe mail op je Companion-app en op de web-app op je beginscherm. Deze instellingen zijn alleen van jou.",
     notif_accounts: "Accounts", notif_which: "Welke mail", notif_all: "Alle mail", notif_vip: "Alleen van mijn VIP-lijst", notif_vip_list: "VIP-afzenders", notif_mute: "Nooit melden voor",
     notif_list_note: "Eén e-mailadres of domein per regel, bijvoorbeeld anna@voorbeeld.nl of voorbeeld.nl.",
@@ -251,6 +251,7 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item .name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .item .sub2 { display:block; font-size:13px; color:var(--grey); }
 .item .cnt { color:var(--grey); font-size:17px; } .item .chev { color:#c7c7cc; width:16px; height:16px; }
+.item .pen { color:var(--blue); width:14px; height:14px; vertical-align:-1px; }
 .item input[type=checkbox] { appearance:none; width:51px; height:31px; border-radius:16px; background:#e9e9eb; position:relative; cursor:pointer; flex:none; transition:background .2s; }
 .item input[type=checkbox]::after { content:""; position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); transition:left .2s; }
 .item input[type=checkbox]:checked { background:#34c759; } .item input[type=checkbox]:checked::after { left:22px; }
@@ -1029,6 +1030,9 @@ class HomemailApp extends HTMLElement {
     const sw = (k, label, on = n[k]) => `<label class="item"><span class="text"><span class="name">${label}</span><input type="checkbox" data-n="${k}"${on ? " checked" : ""}></span></label>`;
     const rerender = (patch) => { Object.assign(n, patch); this._notifyScreen(veil, back, n); };
     n.device_accounts_off = n.device_accounts_off || {};
+    n.device_labels = n.device_labels || {};
+    // a name of your own for a device: only shown here, Home Assistant keeps using the real one (tap the pencil)
+    const label = (key, std) => `<span data-rename="${esc(key)}" data-std="${esc(std)}" style="cursor:pointer">${esc(n.device_labels[key] || std)} ${svg(IC.compose, "pen")}</span>`;
     // "Home-mail iPhone 4f2a" -> iPhone · web app · 4f2a (older registrations: "Home-mail ngelre" -> web app ngelre)
     const webLabel = (name) => {
       const rest = name.replace(/^Home-mail\s*/, ""), m = rest.match(/^(iPhone|iPad|Mac|Android|Windows|Browser) (\w{4})$/);
@@ -1062,9 +1066,9 @@ class HomemailApp extends HTMLElement {
       <div class="explain">${t("notif_buttons_note")}</div>
       <div class="gtitle">${t("notif_where")}</div><div class="group">
         ${sw("app", t("notif_app"))}
-        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${[d.os, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><input type="checkbox" data-dev="${esc(d.name)}"${n.devices_off.includes(d.name) ? "" : " checked"}></span></label>${n.devices_off.includes(d.name) ? "" : devAccs(`app:${d.name}`)}`).join("") : ""}
+        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${label(`app:${d.name}`, d.name)}<span class="sub2">${[n.device_labels[`app:${d.name}`] ? d.name : "", d.os, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><input type="checkbox" data-dev="${esc(d.name)}"${n.devices_off.includes(d.name) ? "" : " checked"}></span></label>${n.devices_off.includes(d.name) ? "" : devAccs(`app:${d.name}`)}`).join("") : ""}
         ${sw("web", t("notif_web"))}
-        ${n.web ? (s.notify_web_devices || []).map((d) => { const w = webLabel(d.name); return `<div class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(w.name)}<span class="sub2">${[w.sub, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn" data-forget="${esc(d.name)}">${t("forget")}</button></span></div>${devAccs(`web:${d.name}`)}`; }).join("") : ""}
+        ${n.web ? (s.notify_web_devices || []).map((d) => { const w = webLabel(d.name); return `<div class="item"><span style="width:24px"></span><span class="text"><span class="name">${label(`web:${d.name}`, w.name)}<span class="sub2">${[n.device_labels[`web:${d.name}`] ? w.name : "", w.sub, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn" data-forget="${esc(d.name)}">${t("forget")}</button></span></div>${devAccs(`web:${d.name}`)}`; }).join("") : ""}
       </div>
       <div class="explain">${(s.notify_devices || []).length || (s.notify_web_devices || []).length ? t("notif_devices_note") : t("notif_no_devices")} ${(s.notify_web_devices || []).length ? "" : t("notif_web_none")}</div>
       <div class="group"><button class="item" data-test><span class="text"><span class="name" style="color:var(--blue)">${t("notif_test")}</span></span></button></div>` : ""}
@@ -1080,6 +1084,14 @@ class HomemailApp extends HTMLElement {
     }));
     veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => {
       n.devices_off = [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev);
+    }));
+    veil.querySelectorAll("[data-rename]").forEach((el) => (el.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation(); // not the checkbox of the row
+      const key = el.dataset.rename, v = prompt(t("rename"), n.device_labels[key] || el.dataset.std);
+      if (v === null) return;
+      const map = { ...n.device_labels };
+      if (v.trim() && v.trim() !== el.dataset.std) map[key] = v.trim().slice(0, 40); else delete map[key];
+      rerender({ device_labels: map });
     }));
     veil.querySelectorAll("[data-dacc]").forEach((b) => (b.onclick = () => {
       const key = b.dataset.dacc, id = b.dataset.accId, off = n.device_accounts_off[key] || [];

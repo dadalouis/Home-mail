@@ -2,6 +2,7 @@
 
 **New**
 - **Version number** at the bottom of Settings, so you can see which version is running.
+- **Your own name for a device** under Settings → Notifications → *Where* (tap the pencil). Only a label in the app: Home Assistant keeps using the real name, so nothing breaks.
 
 **Fixed**
 - **Copy button** for the web app address did nothing in the Companion app and on some iPhones: it now falls back to the older way of copying, and says so when you have to copy by hand.

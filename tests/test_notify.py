@@ -96,3 +96,8 @@ def test_since_date():
     assert notify.since_date({"n": 1, "unit": "m"}, today) == "2026-02-28"  # no 31 February
     assert notify.since_date({"n": 1, "unit": "y"}, date(2028, 2, 29)) == "2027-02-28"
     assert notify.since_date({"all": True}, today) is None and notify.since_date(None, today) is None
+
+
+def test_clean_device_labels():
+    out = notify.clean({"device_labels": {"web:Home-mail iPhone ab12": "  Werk-iPhone  ", "app:x": "", "app:y": 5}}, {})
+    assert out["device_labels"] == {"web:Home-mail iPhone ab12": "Werk-iPhone"}
