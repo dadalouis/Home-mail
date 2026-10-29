@@ -137,6 +137,25 @@ def targets(hass: HomeAssistant, user_id: str, cfg: dict[str, Any], web_names: l
     return {"app": app, "web": web}
 
 
+URL = re.compile(r"(?:https?://|www\.)\S+", re.I)
+
+
+def clean_preview(text: str, limit: int = 140) -> str:
+    """Preview for a notification: no links, one line of text."""
+    t = re.sub(r"\s+", " ", URL.sub("", text or "")).strip(" -–—·:()[]")
+    return (t[:limit].rstrip() + "…") if len(t) > limit else t
+
+
+async def _call(hass: HomeAssistant, domain: str, service: str, data: dict[str, Any], target: dict | None = None) -> bool:
+    """Call a service and wait for it. A device that is offline must not disturb the others (or flood the log)."""
+    try:
+        await hass.services.async_call(domain, service, data, target=target, blocking=True)
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("%s.%s failed: %s", domain, service, err)
+        return False
+    return True
+
+
 def tag_for(entry: ConfigEntry, uid: str) -> str:
     return f"homemail-{entry.entry_id}-{uid}"
 
@@ -148,7 +167,7 @@ async def _send(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], unre
     sender = m.get("name") or m.get("address") or "Home-mail"
     title = f"{sender} · {account_label}" if account_label else sender
     subject = m.get("subject") or "(no subject)"
-    preview = (m.get("preview") or "").strip()
+    preview = clean_preview(m.get("preview") or "")
     message = f"{subject}\n{preview}" if cfg["preview"] and preview else subject
     tag = tag_for(entry, m["uid"])
     group = f"homemail-{entry.entry_id}"
@@ -156,13 +175,13 @@ async def _send(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], unre
         data = {"group": group, "tag": tag, "url": f"/{PANEL_URL}", "clickAction": f"/{PANEL_URL}",
                 "push": {"badge": unread, "thread-id": group, **({} if cfg["sound"] else {"sound": "none"})},
                 "ttl": 0, "priority": "high"}
-        await hass.services.async_call("notify", d["service"], {"title": title, "message": message, "data": data})
+        await _call(hass, "notify", d["service"], {"title": title, "message": message, "data": data})
     if to["web"]:
         payload = {"title": title, "message": message, "tag": tag,
                    "data": {"message_id": m.get("message_id") or "", "unread": unread}}
         if not cfg["sound"]:
             payload["silent"] = True
-        await hass.services.async_call("html5", "send_message", payload, target={"entity_id": to["web"]})
+        await _call(hass, "html5", "send_message", payload, {"entity_id": to["web"]})
 
 
 async def async_notify_new(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], unread: int) -> None:
@@ -198,25 +217,24 @@ async def async_clear(hass: HomeAssistant, entry: ConfigEntry, uid: str) -> None
             continue
         cfg = settings_of(all_settings, user.id)
         to = targets(hass, user.id, cfg, all_settings.get(user.id, {}).get("push") or [])
-        try:
-            for d in to["app"]:
-                await hass.services.async_call("notify", d["service"], {"message": "clear_notification", "data": {"tag": tag}})
-            if to["web"] and hass.services.has_service("html5", "dismiss_message"):
-                await hass.services.async_call("html5", "dismiss_message", {"tag": tag}, target={"entity_id": to["web"]})
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Clearing notification failed: %s", err)
+        for d in to["app"]:
+            await _call(hass, "notify", d["service"], {"message": "clear_notification", "data": {"tag": tag}})
+        if to["web"] and hass.services.has_service("html5", "dismiss_message"):
+            await _call(hass, "html5", "dismiss_message", {"tag": tag}, {"entity_id": to["web"]})
 
 
 async def async_test(hass: HomeAssistant, user, all_settings: dict) -> dict[str, int]:
     """Test notification to this user's own devices (ignores the filters). Returns how many devices it went to."""
     cfg = settings_of(all_settings, user.id)
     to = targets(hass, user.id, {**cfg, "devices_off": cfg["devices_off"]}, all_settings.get(user.id, {}).get("push") or [])
+    app = 0
     for d in to["app"]:
-        await hass.services.async_call("notify", d["service"], {
+        app += await _call(hass, "notify", d["service"], {
             "title": "Home-mail", "message": "Test notification",
             "data": {"tag": "homemail-test", "url": f"/{PANEL_URL}", "clickAction": f"/{PANEL_URL}"}})
+    web = 0
     if to["web"]:
-        await hass.services.async_call("html5", "send_message", {
+        web = len(to["web"]) if await _call(hass, "html5", "send_message", {
             "title": "Home-mail", "message": "Test notification", "tag": "homemail-test", "data": {}},
-            target={"entity_id": to["web"]})
-    return {"app": len(to["app"]), "web": len(to["web"])}
+            {"entity_id": to["web"]}) else 0
+    return {"app": app, "web": web}

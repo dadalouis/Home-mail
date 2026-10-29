@@ -22,5 +22,7 @@ jobs:
           if gh release view "$version" >/dev/null 2>&1; then
             echo "Release $version already exists"
           else
-            gh release create "$version" --target "$GITHUB_SHA" --title "Home-mail ${version#v}" --notes-file RELEASE_NOTES.md
+            flag=""
+            case "$version" in *-*) flag="--prerelease" ;; esac  # e.g. v0.2.2-beta.1 is a beta
+            gh release create "$version" $flag --target "$GITHUB_SHA" --title "Home-mail ${version#v}" --notes-file RELEASE_NOTES.md
           fi
