@@ -132,3 +132,26 @@ def test_list_and_count_since(monkeypatch):
     rows = mail.list_messages("A", {"imap_server": "x"}, 50, None, {}, "INBOX", "2026-10-15")
     assert imap.searched == (None, "SINCE", "15-Oct-2026") and [r["uid"] for r in rows] == ["40098", "40099", "40100"]
     assert mail.unseen_since({}, "2026-10-15") == 1 and imap.searched == (None, "UNSEEN", "SINCE", "15-Oct-2026")
+
+
+class FolderImap:
+    def __init__(self):
+        self.status_for = []
+
+    def list(self):
+        return "OK", [b'(\\HasNoChildren) "/" "INBOX"', b'(\\HasNoChildren) "/" "Nieuwsbrieven"', b'(\\HasNoChildren) "/" "Facturen"']
+
+    def status(self, name, what):
+        self.status_for.append(name)
+        return "OK", [b"(MESSAGES 9 UNSEEN 2)"]
+
+    def logout(self):
+        pass
+
+
+def test_hidden_folders_are_not_counted(monkeypatch):
+    imap = FolderImap()
+    monkeypatch.setattr(mail, "connect", lambda cfg, folder: imap)
+    out = {f["folder"]: f for f in mail.mailboxes({}, None, ["Nieuwsbrieven", "INBOX"])}
+    assert '"Nieuwsbrieven"' not in imap.status_for and out["Nieuwsbrieven"]["hidden"] is True
+    assert out["INBOX"]["unread"] == 2 and out["Facturen"]["total"] == 9  # the inbox is never hidden

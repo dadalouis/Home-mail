@@ -449,9 +449,10 @@ NAMES = {
 ORDER = ["inbox", "drafts", "sent", "junk", "trash", "archive", "all"]
 
 
-def mailboxes(cfg: dict, since: str | None = None) -> list[dict[str, Any]]:
+def mailboxes(cfg: dict, since: str | None = None, skip: list[str] | None = None) -> list[dict[str, Any]]:
     """All folders with counters, in iOS order: Inbox, Drafts, Sent, Junk, Trash, Archive, All, then custom folders.
-    With `since` the inbox counts only unread mail of that period (like the web app shows it)."""
+    With `since` the inbox counts only unread mail of that period (like the web app shows it).
+    Folders in `skip` (hidden in a web app) are listed without counting them: less work on the server."""
     m = connect(cfg, None)
     try:
         _, data = m.list()
@@ -471,6 +472,9 @@ def mailboxes(cfg: dict, since: str | None = None) -> list[dict[str, Any]]:
             if kind is None and name.lower() in NAMES and (not sep or sep not in name):
                 kind = NAMES[name.lower()]
             total = unread = 0
+            if raw in (skip or []) and kind != "inbox":
+                out.append({"folder": raw, "name": short, "path": name, "kind": kind or "custom", "total": 0, "unread": 0, "hidden": True})
+                continue
             try:
                 _, st = m.status(q(raw), "(MESSAGES UNSEEN)")
                 t = (st[0] or b"").decode("utf-8", "replace")

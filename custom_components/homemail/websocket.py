@@ -309,7 +309,7 @@ async def ws_list(hass, connection, msg) -> None:
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homemail/mailboxes", vol.Optional("cached", default=False): bool,
-                                   vol.Optional("since"): SINCE})
+                                   vol.Optional("since"): SINCE, vol.Optional("skip"): {str: [str]}})
 @websocket_api.async_response
 async def ws_mailboxes(hass, connection, msg) -> None:
     """All folders with counters, per account (accounts in parallel).
@@ -324,8 +324,9 @@ async def ws_mailboxes(hass, connection, msg) -> None:
 
     async def one(k: str, e: ConfigEntry) -> tuple[dict, str | None]:
         try:
-            folders = await hass.async_add_executor_job(mail.mailboxes, account_cfg(e), msg.get("since") or None)
-            if not msg.get("since"):
+            folders = await hass.async_add_executor_job(mail.mailboxes, account_cfg(e), msg.get("since") or None,
+                                                        (msg.get("skip") or {}).get(k))
+            if not msg.get("since") and not msg.get("skip"):
                 e.runtime_data.mailboxes = folders
             error = None
         except Exception as err:  # noqa: BLE001

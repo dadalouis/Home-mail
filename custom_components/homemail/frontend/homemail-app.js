@@ -38,7 +38,7 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", older: "Load older mail", period: "Mail in this app",
+    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", older: "Load older mail", period: "Mail in this app", folders_app: "Folders in this app", folders_all: "All folders", folders_hidden: "{n} hidden", folders_note: "Hidden folders are not shown or counted in this app. They stay on the server and in your other apps.",
     notifications: "Notifications", notif_on: "Notifications", notif_note: "Home-mail notifies you about new mail on your Companion app and on the web app on your home screen. These settings are yours alone.",
     notif_accounts: "Accounts", notif_which: "Which mail", notif_all: "All mail", notif_vip: "Only from my VIP list", notif_vip_list: "VIP senders", notif_mute: "Never notify for",
     notif_list_note: "One email address or domain per line, for example anna@example.com or example.com.",
@@ -100,7 +100,7 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", older: "Oudere mail laden", period: "Mail in deze app",
+    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", older: "Oudere mail laden", period: "Mail in deze app", folders_app: "Mappen in deze app", folders_all: "Alle mappen", folders_hidden: "{n} verborgen", folders_note: "Verborgen mappen worden in deze app niet getoond of geteld. Ze blijven op de server en in je andere apps.",
     notifications: "Meldingen", notif_on: "Meldingen", notif_note: "Home-mail meldt nieuwe mail op je Companion-app en op de web-app op je beginscherm. Deze instellingen zijn alleen van jou.",
     notif_accounts: "Accounts", notif_which: "Welke mail", notif_all: "Alle mail", notif_vip: "Alleen van mijn VIP-lijst", notif_vip_list: "VIP-afzenders", notif_mute: "Nooit melden voor",
     notif_list_note: "Eén e-mailadres of domein per regel, bijvoorbeeld anna@voorbeeld.nl of voorbeeld.nl.",
@@ -301,6 +301,7 @@ class HomemailApp extends HTMLElement {
     this._set = { accounts: {}, default: "", images: true }; this._mb = null; this._contacts = [];
     this._unreadOnly = load("homemail_unread_only", false);
     this._closed = load("homemail_closed", {}); // collapsed accounts on the Mailboxes screen
+    this._hidden = load("homemail_hidden_folders", {}); // web app: folders not shown, per account
     // a property set before the upgrade would hide the setter
     for (const p of ["hass"]) if (Object.prototype.hasOwnProperty.call(this, p)) { const v = this[p]; delete this[p]; this[p] = v; }
   }
@@ -468,11 +469,17 @@ class HomemailApp extends HTMLElement {
     if (!this._mb) { // last known state from Home Assistant first: instant
       try { const c = await this._call("mailboxes", { cached: true }); if (c.accounts && !this._mb) { this._mb = c; this._renderMb(); } } catch (_) {}
     }
-    try { this._mb = await this._call("mailboxes", this.since ? { since: this.since } : {}); this._renderMb(); }
+    try { this._mb = await this._call("mailboxes", this._mbArgs()); this._renderMb(); }
     catch (e) { this._root.getElementById("mbbody").innerHTML = `<div class="empty">${this.t("load_failed")}</div>`; }
+  }
+  _hiddenOn() { return this.mailWindow ? this._hidden : {}; } // only the web app hides folders
+  _mbArgs() {
+    const skip = Object.fromEntries(Object.entries(this._hiddenOn()).filter(([, v]) => v.length));
+    return { ...(this.since ? { since: this.since } : {}), ...(Object.keys(skip).length ? { skip } : {}) };
   }
   _renderMb() {
     const mb = this._mb; if (!mb) return;
+    const hid = this._hiddenOn();
     const cnt = (n) => (n ? `<span class="cnt">${n}</span>` : "");
     const item = (data, icon, name, n) => `<button class="item" ${data}>${svg(icon)}<span class="text"><span class="name">${esc(name)}</span>${cnt(n)}${svg(IC.next, "chev")}</span></button>`;
     const inbox = (a) => a.folders.find((f) => f.kind === "inbox");
@@ -487,7 +494,7 @@ class HomemailApp extends HTMLElement {
       const closed = !!this._closed[a.account];
       h += `<div class="ghead${closed ? " closed" : ""}" data-fold="${esc(a.account)}"><span><span class="acc" style="background:${esc(this._color(a.account))}"></span>${esc(a.name)}</span>${svg(IC.open)}</div>`;
       if (closed) continue;
-      h += '<div class="group">' + a.folders.map((f) => {
+      h += '<div class="group">' + a.folders.filter((f) => f.kind === "inbox" || !(hid[a.account] || []).includes(f.folder)).map((f) => {
         const name = f.kind === "custom" ? f.name : this.t(f.kind);
         const n = f.kind === "drafts" || f.kind === "sent" ? f.total : f.unread; // like iOS: drafts count everything
         return item(`data-acc="${esc(a.account)}" data-folder="${esc(f.folder)}" data-kind="${f.kind}" data-name="${esc(f.kind === "inbox" ? a.name : name)}"`,
@@ -955,7 +962,8 @@ class HomemailApp extends HTMLElement {
             <label class="item"><span class="text"><span class="name">${this.t("default_account")}</span><select data-opt="default">${accs.map((a) => `<option value="${esc(a)}"${a === s.default ? " selected" : ""}>${esc(s.accounts[a].name)}</option>`).join("")}</select></span></label>
           </div>
           <div class="explain">${this.t("settings_note")}</div>
-          ${this.mailWindow ? `<div class="group"><button class="item" data-period><span style="width:24px"></span><span class="text"><span class="name">${this.t("period")}<span class="sub2">${esc(this.mailWindow.label())}</span></span>${svg(IC.next, "chev")}</span></button></div>` : ""}
+          ${this.mailWindow ? `<div class="group"><button class="item" data-period><span style="width:24px"></span><span class="text"><span class="name">${this.t("period")}<span class="sub2">${esc(this.mailWindow.label())}</span></span>${svg(IC.next, "chev")}</span></button>
+            <button class="item" data-folders><span style="width:24px"></span><span class="text"><span class="name">${this.t("folders_app")}<span class="sub2">${esc(this._hiddenLabel())}</span></span>${svg(IC.next, "chev")}</span></button></div>` : ""}
           <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(appUrl)}" style="flex:1;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"><button type="button" class="btn" data-copy>${svg(IC.copy)}${this.t("copy")}</button></div></div>
           <div class="explain">${this.t("app_note")}${appUrl.startsWith("https:") ? "" : " " + this.t("app_note_http")}</div>
         </div></div>`;
@@ -967,6 +975,8 @@ class HomemailApp extends HTMLElement {
       veil.querySelector("[data-notif]").onclick = () => this._notifyScreen(veil, show);
       const per = veil.querySelector("[data-period]");
       if (per) per.onclick = () => this.mailWindow.edit().then(show);
+      const fol = veil.querySelector("[data-folders]");
+      if (fol) fol.onclick = () => this._foldersScreen(veil, show);
       veil.querySelectorAll("[data-acc]").forEach((b) => (b.onclick = () => this._accountScreen(veil, b.dataset.acc, show)));
       veil.querySelector("[data-add]").onclick = () => (s.is_admin ? this._addAccount(veil, show) : this._toast(this.t("admin_only")));
       veil.querySelectorAll("[data-opt]").forEach((el) => (el.onchange = () => {
@@ -974,6 +984,29 @@ class HomemailApp extends HTMLElement {
       }));
     };
     show();
+  }
+  _hiddenLabel() {
+    const n = Object.values(this._hidden).reduce((s, v) => s + v.length, 0);
+    return n ? this.t("folders_hidden", { n }) : this.t("folders_all");
+  }
+  // Web app: which folders it shows (the inbox always). Saved on the phone at once.
+  async _foldersScreen(veil, back) {
+    if (!this._mb?.accounts) { try { this._mb = await this._call("mailboxes", { cached: true }); } catch (_) {} }
+    if (!this._mb?.accounts) { try { this._mb = await this._call("mailboxes"); } catch (_) {} }
+    const accs = this._mb?.accounts || [];
+    veil.innerHTML = `<div class="sheet grey">
+      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${this.t("back")}</button><b>${this.t("folders_app")}</b><span style="width:80px"></span></div>
+      <div class="scroll">${accs.map((a) => `<div class="gtitle" style="margin-top:18px">${esc(a.name)}</div><div class="group">${a.folders.map((f) =>
+        `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(f.kind === "custom" ? f.path : this.t(f.kind))}</span><input type="checkbox" data-hf="${esc(a.account)}" data-f="${esc(f.folder)}"${f.kind === "inbox" ? " checked disabled" : (this._hidden[a.account] || []).includes(f.folder) ? "" : " checked"}></span></label>`).join("")}</div>`).join("")}
+      <div class="explain">${this.t("folders_note")}</div></div></div>`;
+    veil.querySelector("[data-back]").onclick = () => { this._loadMb(); back(); };
+    veil.querySelectorAll("[data-hf]").forEach((el) => (el.onchange = () => {
+      const acc = el.dataset.hf, list = (this._hidden[acc] || []).filter((x) => x !== el.dataset.f);
+      if (!el.checked) list.push(el.dataset.f);
+      if (list.length) this._hidden[acc] = list; else delete this._hidden[acc];
+      store("homemail_hidden_folders", this._hidden);
+      this._renderMb();
+    }));
   }
   _notifyScreen(veil, back, draft) {
     // changes are kept in a draft and only saved with the Save button
