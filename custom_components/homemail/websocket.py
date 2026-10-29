@@ -46,7 +46,7 @@ class Unauthorized(Exception):
 
 def async_register_websocket(hass: HomeAssistant) -> None:
     for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe,
-                    ws_push_register, ws_push_check, ws_web_window, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
+                    ws_push_register, ws_push_check, ws_web_device, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
         websocket_api.async_register_command(hass, handler)
 
 
@@ -112,10 +112,12 @@ async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
            "app_urls": _app_urls(hass), "notify": ncfg,
            # where notifications go, with the last result per device (memory only, since the last restart)
            "notify_devices": [{**d, "last": sent.get(f"app:{d['service']}")} for d in notify.app_devices(hass, user.id)],
-           "notify_web_devices": [{**d, "last": sent.get(f"web:{d['entity_id']}")}
+           "notify_web_devices": [{**d, "last": sent.get(f"web:{d['entity_id']}"),
+                                   "window": (s.get("windows") or {}).get(d["name"]), "hidden": (s.get("folders") or {}).get(d["name"]) or {}}
                                   for d in notify.web_devices(hass, s.get("push") or [])],
            "notify_web_names": list(s.get("push") or [])}
-    out.pop("push", None)
+    for k in ("push", "windows", "folders"):  # shown per device above
+        out.pop(k, None)
     if user.is_admin:  # who may use which account is set by administrators
         out["ha_users"] = [{"id": u.id, "name": u.name or u.id} for u in await hass.auth.async_get_users()
                            if not u.system_generated and u.is_active]
@@ -199,20 +201,38 @@ WINDOW = vol.Schema({vol.Optional("all"): bool, vol.Optional("n"): vol.All(int, 
                      vol.Optional("unit"): vol.In(["d", "w", "m", "y"])})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homemail/web_window", vol.Required("endpoint"): vol.All(str, vol.Length(max=2000)),
-                                   vol.Required("window"): WINDOW})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/web_device",
+                                   vol.Exclusive("endpoint", "device"): vol.All(str, vol.Length(max=2000)),
+                                   vol.Exclusive("name", "device"): vol.All(str, vol.Length(max=100)),
+                                   vol.Optional("window"): vol.Any(None, WINDOW), vol.Optional("hidden"): {str: [str]}})
 @websocket_api.async_response
-async def ws_web_window(hass, connection, msg) -> None:
-    """The period of mail this web app shows: remembered per registration, so its red number counts the same."""
+async def ws_web_device(hass, connection, msg) -> None:
+    """Read or change what one of your web apps shows: its period of mail and hidden folders.
+    Kept in Home Assistant per registration, so it can be set from any device and the red number counts the same.
+    The web app itself names it by its push endpoint, other devices by the registration name."""
     regs = await hass.async_add_executor_job(_html5_registrations, hass)
-    name = next((n for n, r in regs.items() if (r.get("subscription") or {}).get("endpoint") == msg["endpoint"]), None)
-    if name:
-        store, all_settings = await _store(hass)
-        mine = {**USER_DEFAULTS, **all_settings.get(connection.user.id, {})}
-        mine["windows"] = {k: v for k, v in (mine.get("windows") or {}).items() if k in regs} | {name: dict(msg["window"])}
+    store, all_settings = await _store(hass)
+    mine = {**USER_DEFAULTS, **all_settings.get(connection.user.id, {})}
+    if msg.get("endpoint"):
+        name = next((n for n, r in regs.items() if (r.get("subscription") or {}).get("endpoint") == msg["endpoint"]), None)
+    else:
+        name = msg.get("name")
+    if not name or name not in (mine.get("push") or []):
+        connection.send_result(msg["id"], {"name": None})
+        return
+    if "window" in msg or "hidden" in msg:
+        for key, field in (("windows", "window"), ("folders", "hidden")):
+            if field in msg:
+                keep = {k: v for k, v in (mine.get(key) or {}).items() if not regs or k in regs}
+                if msg[field]:
+                    keep[name] = msg[field] if field == "hidden" else dict(msg[field])
+                else:
+                    keep.pop(name, None)
+                mine[key] = keep
         all_settings[connection.user.id] = mine
         store.async_delay_save(lambda: all_settings, 1)
-    connection.send_result(msg["id"], {"ok": bool(name)})
+    connection.send_result(msg["id"], {"name": name, "window": (mine.get("windows") or {}).get(name),
+                                       "hidden": (mine.get("folders") or {}).get(name) or {}})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homemail/push_check", vol.Required("endpoint"): vol.All(str, vol.Length(max=2000))})

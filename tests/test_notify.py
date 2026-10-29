@@ -101,3 +101,10 @@ def test_since_date():
 def test_clean_device_labels():
     out = notify.clean({"device_labels": {"web:Home-mail iPhone ab12": "  Werk-iPhone  ", "app:x": "", "app:y": 5}}, {})
     assert out["device_labels"] == {"web:Home-mail iPhone ab12": "Werk-iPhone"}
+
+
+def test_web_app_switched_off(monkeypatch):
+    monkeypatch.setattr(notify, "app_devices", lambda hass, user: [])
+    monkeypatch.setattr(notify, "web_devices", lambda hass, names: [{"name": n, "entity_id": f"notify.{n}"} for n in names])
+    to = notify.targets(None, "u1", cfg(devices_off=["web:w1"]), ["w1", "w2"], "GMAIL")
+    assert to["web"] == ["notify.w2"]

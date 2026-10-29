@@ -34,7 +34,7 @@ NOTIFY_DEFAULTS: dict[str, Any] = {
     "buttons": True,  # Read / Archive / Delete / Reply on Companion app notifications
     "app": True,  # Companion app
     "web": True,  # web app (html5 push)
-    "devices_off": [],  # Companion devices (names) that do not notify
+    "devices_off": [],  # devices that do not notify: Companion device names, web apps as "web:<registration>"
     "device_accounts_off": {},  # "app:<name>" / "web:<name>" -> entry ids of accounts that do not notify on that device
     "device_labels": {},  # "app:<name>" / "web:<name>" -> a name of your own, only shown in the app
 }
@@ -182,7 +182,8 @@ def targets(hass: HomeAssistant, user_id: str, cfg: dict[str, Any], web_names: l
     off = cfg.get("device_accounts_off") or {}
     app = [d for d in app_devices(hass, user_id) if d["name"] not in cfg["devices_off"]
            and account not in off.get(f"app:{d['name']}", [])] if cfg["app"] else []
-    web = [d for d in web_devices(hass, web_names) if account not in off.get(f"web:{d['name']}", [])] if cfg["web"] else []
+    web = [d for d in web_devices(hass, web_names) if f"web:{d['name']}" not in cfg["devices_off"]
+           and account not in off.get(f"web:{d['name']}", [])] if cfg["web"] else []
     return {"app": app, "web": [d["entity_id"] for d in web], "web_names": {d["entity_id"]: d["name"] for d in web}}
 
 

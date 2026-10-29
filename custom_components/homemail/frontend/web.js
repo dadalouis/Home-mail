@@ -170,11 +170,33 @@ function sinceDate(w, today = new Date()) { // same rules as notify.since_date i
 }
 const windowLabel = (w = getWindow()) => !w || w.all ? t("p_all") : t("last").replace("{n}", `${w.n} ${t("u_" + w.unit)[w.n === 1 ? 0 : 1]}`);
 app.since = sinceDate(getWindow());
-async function syncWindow() { // tell HA, so the red number in notifications counts the same period
+// The period and hidden folders of this web app are kept in Home Assistant (per registration), so they can be
+// changed from any device; the phone keeps a copy to start fast. HA's copy wins once this phone is registered.
+async function myEndpoint() {
+  try { return (await (await navigator.serviceWorker?.getRegistration())?.pushManager.getSubscription())?.endpoint || ""; } catch (_) { return ""; }
+}
+function applyDevice(r) {
+  if (!r?.name) return;
+  app.mailWindow.name = r.name;
+  if (r.window) { try { localStorage.setItem(WKEY, JSON.stringify(r.window)); } catch (_) {} }
+  app._hidden = r.hidden || {};
+  try { localStorage.setItem("homemail_hidden_folders", JSON.stringify(app._hidden)); } catch (_) {}
+  const since = sinceDate(getWindow());
+  if (since !== app.since) app.setSince(since); else if (app._mbOpen?.()) app._loadMb();
+  else app._renderMb?.();
+}
+async function syncWindow() { // tell HA what was chosen on this phone (first login, or before it was registered)
+  const endpoint = await myEndpoint();
+  if (!endpoint || !getWindow()) return;
+  try { applyDevice(await connection.sendMessagePromise({ type: "homemail/web_device", endpoint, window: getWindow(), hidden: app._hidden || {} })); } catch (_) {}
+}
+async function loadDevice() { // on opening: take over what was changed on another device
+  const endpoint = await myEndpoint();
+  if (!endpoint) return;
   try {
-    const reg = await navigator.serviceWorker?.getRegistration();
-    const sub = await reg?.pushManager.getSubscription();
-    if (sub && getWindow()) await connection.sendMessagePromise({ type: "homemail/web_window", endpoint: sub.endpoint, window: getWindow() });
+    const r = await connection.sendMessagePromise({ type: "homemail/web_device", endpoint });
+    if (r?.name && !r.window && getWindow()) return syncWindow(); // registered before periods were kept in HA
+    applyDevice(r);
   } catch (_) {}
 }
 // Choose the period: after the first login, and from Settings. Resolves when saved (true) or closed (false).
@@ -205,7 +227,7 @@ function windowScreen(first) {
     };
   });
 }
-app.mailWindow = { label: () => windowLabel(), edit: () => windowScreen(false) };
+app.mailWindow = { name: "", label: () => windowLabel(), edit: () => windowScreen(false), apply: applyDevice };
 
 // iOS shows the page colour behind the status bar (and fades it over the top of the app): keep it the colour of
 // the screen that is open, white for a list, grey for Mailboxes, so there is no grey-to-white band at the top.
@@ -227,9 +249,11 @@ const watchTop = () => {
   matchTop();
 };
 watchTop();
-// the period moves with the calendar: a new day, a new first day
+// back in the app: changes made on another device, and the period moves with the calendar (a new day, a new first day)
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && app.since && sinceDate(getWindow()) !== app.since) app.setSince(sinceDate(getWindow()));
+  if (document.hidden) return;
+  if (app.since && sinceDate(getWindow()) !== app.since) app.setSince(sinceDate(getWindow()));
+  if (read()?.refresh_token) waitReady().then(loadDevice, () => {});
 });
 
 let ws = null, seq = 0, pending = new Map(), delay = 1000;
@@ -386,8 +410,11 @@ function pushBarSmall(key) {
 }
 
 async function afterLogin() {
+  await waitReady().catch(() => {});
+  await loadDevice(); // a period set for this phone from another device: no need to ask
   if (!getWindow()) await windowScreen(true);
-  pushSetup().catch(() => {});
+  await pushSetup().catch(() => {});
+  loadDevice();
 }
 
 let pushBusy = false;
