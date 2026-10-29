@@ -61,14 +61,16 @@
           "signature": "Signature",
           "sent_folder": "Sent folder",
           "users": "Users who may use this account",
-          "scan_interval": "Check for new mail every"
+          "scan_interval": "Check for new mail every",
+          "push": "Instant new mail (IMAP IDLE)"
         },
         "data_description": {
           "name": "How this account is called in the app, e.g. 'Work'.",
           "sender_name": "Your name as recipients see it.",
           "signature": "The closing added below your messages, e.g. 'Kind regards, Alex'.",
           "sent_folder": "Leave empty to detect it automatically (Gmail keeps a copy itself).",
-          "users": "Leave empty to allow all administrators."
+          "users": "Leave empty to allow all administrators.",
+          "push": "Keeps one connection open so new mail arrives at once; the regular check then runs every 15 minutes. Takes effect after reloading the account."
         }
       }
     }

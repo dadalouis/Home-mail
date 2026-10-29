@@ -15,7 +15,7 @@ from . import mail
 from .const import (
     COLORS, CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_PROVIDER, CONF_SMTP_PORT, CONF_SMTP_SERVER,
     DEFAULT_SCAN_INTERVAL, DOMAIN, OPT_COLOR, OPT_NAME, OPT_SCAN_INTERVAL, OPT_SENDER, OPT_SENT_FOLDER,
-    OPT_SIGNATURE, OPT_USERS, PROVIDERS,
+    OPT_PUSH, OPT_SIGNATURE, OPT_USERS, PROVIDERS,
 )
 
 try:  # HA 2025.8+
@@ -168,5 +168,6 @@ class HomemailOptionsFlow(_OptionsBase):
             vol.Required(OPT_SCAN_INTERVAL, default=o.get(OPT_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=30, max=3600, step=10, unit_of_measurement="s",
                                               mode=selector.NumberSelectorMode.BOX)),
+            vol.Required(OPT_PUSH, default=o.get(OPT_PUSH, True)): bool,
         })
         return self.async_show_form(step_id="init", data_schema=schema)

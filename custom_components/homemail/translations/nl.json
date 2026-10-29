@@ -61,14 +61,16 @@
           "signature": "Handtekening",
           "sent_folder": "Map voor verzonden mail",
           "users": "Gebruikers die dit account mogen gebruiken",
-          "scan_interval": "Op nieuwe mail controleren elke"
+          "scan_interval": "Op nieuwe mail controleren elke",
+          "push": "Nieuwe mail direct (IMAP IDLE)"
         },
         "data_description": {
           "name": "Hoe dit account in de app heet, bijv. 'Werk'.",
           "sender_name": "Je naam zoals ontvangers die zien.",
           "signature": "De afsluiting onder je berichten, bijv. 'Vriendelijke groet, Sanne'.",
           "sent_folder": "Leeg laten om automatisch te bepalen (Gmail bewaart zelf een kopie).",
-          "users": "Leeg laten om alle beheerders toe te staan."
+          "users": "Leeg laten om alle beheerders toe te staan.",
+          "push": "Houdt één verbinding open zodat nieuwe mail meteen binnenkomt; de gewone controle loopt dan elke 15 minuten. Werkt na het herladen van het account."
         }
       }
     }

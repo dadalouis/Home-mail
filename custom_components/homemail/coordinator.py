@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from . import mail, notify
 from .const import (
     CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_SMTP_PORT, CONF_SMTP_SERVER, DEFAULT_SCAN_INTERVAL, DOMAIN,
-    EVENT_NEW_MAIL, OPT_NAME, OPT_SCAN_INTERVAL, SIGNAL_UPDATE,
+    EVENT_NEW_MAIL, OPT_NAME, OPT_SCAN_INTERVAL, PUSH_SCAN_INTERVAL, SIGNAL_UPDATE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,6 +52,16 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
         self.bodies: OrderedDict[tuple[str, str], dict] = OrderedDict()  # (folder, uid) -> read_message result
         self._prefetching = False
         self.notified: list[str] = []  # UIDs we sent a notification for and that may still be on a device
+        self.idle = None  # IdleWatcher when IMAP IDLE (push) is on for this account
+        self._interval = self.update_interval
+
+    def set_push(self, ok: bool) -> None:
+        """IMAP IDLE works (or stopped working): check less (or as often as set) on top of it."""
+        self.update_interval = max(self._interval, timedelta(seconds=PUSH_SCAN_INTERVAL)) if ok else self._interval
+
+    def push_refresh(self) -> None:
+        """The server said the inbox changed: check now."""
+        self.hass.async_create_task(self.async_request_refresh())
 
     def put_body(self, folder: str, uid: str, body: dict) -> None:
         if len(body.get("html", "")) > MAX_BODY:
@@ -111,6 +121,8 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
             await self._fire_new(old["uidnext"], st["unread"])
         if old and self.notified and (st["unread"] != old["unread"] or st["uidnext"] != old["uidnext"]):
             await self._clear_read_elsewhere()
+        if old and st["unread"] < old["unread"]:
+            self.entry.async_create_background_task(self.hass, notify.async_badge(self.hass, self.entry, st["unread"]), f"{DOMAIN} badge")
         if old != st:
             async_dispatcher_send(self.hass, SIGNAL_UPDATE, self.entry.entry_id, st["unread"])
         if old is None or old.get("uidnext") != st["uidnext"] or old.get("unread") != st["unread"]:

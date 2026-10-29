@@ -20,3 +20,14 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install pytest
+      - run: python -m pytest -q tests
+      - run: node --check custom_components/homemail/frontend/homemail-app.js && node --check custom_components/homemail/frontend/web.js && node --check custom_components/homemail/frontend/sw.js

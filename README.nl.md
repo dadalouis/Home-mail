@@ -29,6 +29,7 @@
 - Bijlagen: bijlagen van een bericht openen en downloaden, en eigen bestanden toevoegen bij het schrijven (tot 20 MB per bestand, 25 MB per bericht)
 - Adressuggesties uit je inbox en verzonden mail
 - Zoeken (op de server; bij Gmail werkt de Gmail-zoeksyntax)
+- Nieuwe mail meteen binnen met IMAP IDLE (niet wachten op de volgende controle)
 - Ingebouwde meldingen op je Companion-app en de web-app op je beginscherm, per gebruiker: kies accounts, afzenders (VIP en gedempt), dagen, stille uren, tekst en geluid
 - Per account een sensor met het aantal ongelezen berichten, en een event `homemail_new_mail`
 - Per account kies je welke Home Assistant-gebruikers het mogen gebruiken (standaard: alleen beheerders)
@@ -80,7 +81,9 @@ Iedereen stelt dit voor zichzelf in onder **Instellingen → Meldingen** in Home
 | Dagen en stille uren | Alleen op de dagen die je kiest, en stil tussen twee tijden (bijvoorbeeld 22:00 tot 07:00) |
 | Tekst, geluid | De tekst van het bericht tonen of alleen het onderwerp; met of zonder geluid |
 | Waar | Companion-app en/of web-app, en per Companion-apparaat |
-| Testmelding | Stuurt een test naar je eigen apparaten |
+| Testmelding | Stuurt een test naar je eigen apparaten, met de instellingen op het scherm (opgeslagen of niet) |
+
+Wijzigingen bewaar je met de knop **Opslaan**. Onder *Waar* zie je elke Companion-app die met jouw Home Assistant-gebruiker is ingelogd en elke web-app die je hebt aangezet, met het tijdstip waarop de laatste melding aankwam of waarom die mislukte. Web-apps die je niet meer gebruikt, kun je daar vergeten. Tik je op een melding, dan opent dat bericht, en het rode getal op het app-icoon gaat weer omlaag als je mail leest, hier of in een andere app (iPhone, iPad en Mac).
 
 Berichten die binnenkomen tijdens de stille uren of op een dag die uit staat, melden achteraf niets; de mail staat gewoon klaar als je de app opent.
 
@@ -96,6 +99,7 @@ Iedereen in je huishouden kan eigen postbussen hebben, binnen dezelfde Home-mail
 4. Iedereen opent hetzelfde app-adres en logt in met het eigen Home Assistant-account. Je ziet alleen de postbussen waar je toegang toe hebt; de rest verschijnt helemaal niet.
 
 Goed om te weten:
+- Een account dat je in de Home-mail-app toevoegt, is alleen van jou tot je het deelt. Een account dat je toevoegt via Instellingen → Apparaten en diensten begint zonder gekozen gebruikers; dan kunnen **alle beheerders** het lezen en krijgen ze de meldingen. De app toont dan een waarschuwing, en beheerders kiezen de gebruikers direct in het accountscherm van de app.
 - Een account kan met meerdere gebruikers gedeeld worden en een gebruiker kan meerdere accounts hebben.
 - Zodra je gebruikers voor een account kiest, hebben alleen zij toegang. Beheerders worden niet automatisch toegevoegd, dus kies jezelf er ook bij als je het account zelf wilt gebruiken.
 - Persoonlijke instellingen (standaardaccount, blind kopie naar mezelf, afbeeldingen laden) gelden per gebruiker. Handtekening en kleur horen bij het account. Nieuwe berichten krijgen een standaardafsluiting met de naam van de ingelogde Home Assistant-gebruiker, tot je zelf een handtekening instelt.
@@ -118,8 +122,8 @@ Gebruik het **https**-adres (Home Assistant Cloud, eigen domein of een VPN naar 
 - Elk mailaccount is een eigen koppeling. Het wachtwoord staat alleen in je eigen Home Assistant en wordt nooit gelogd.
 - Mail wordt op verzoek rechtstreeks van de IMAP-server gehaald; behalve de ongelezen-teller komt er niets in de states of de database.
 - De app praat via de websocket-API (`homemail/*`) met Home Assistant. Elke opdracht controleert of de ingelogde gebruiker dat account mag gebruiken.
-- Elke inbox wordt elke 60 seconden gecontroleerd (instelbaar per account) met één lichte `STATUS`-opdracht.
-- **Gmail en andere providers beperken hoe vaak en hoeveel je mag controleren.** Home-mail opent per account per controle één korte verbinding en sluit die weer, wat ver onder de bekende limieten blijft. Google publiceert echter geen veilig pollinterval. Klaagt een provider over te veel logins, verhoog dan het interval in de accountopties (bijvoorbeeld naar 120 of 300 seconden). Meldingen komen dan iets later binnen.
+- **Nieuwe mail direct (IMAP IDLE).** Per account houdt Home-mail één verbinding open en meldt de mailserver nieuwe mail (en mail die elders gelezen of verwijderd is) meteen. Zolang dat werkt, loopt de gewone controle alleen elke 15 minuten als vangnet. Vereist Python 3.14 (Home Assistant 2026.x) en een server met IDLE (Gmail, iCloud, Outlook en de meeste andere hebben dat); anders, of als *Nieuwe mail direct* uit staat in de accountopties, wordt elke inbox elke 60 seconden gecontroleerd (instelbaar) met één lichte `STATUS`-opdracht. Het accountscherm in de app laat zien welke van de twee actief is.
+- **Gmail en andere providers beperken hoe vaak en hoeveel je mag controleren.** Met *Nieuwe mail direct* (IMAP IDLE) aan houdt Home-mail één verbinding open en controleert het maar elke 15 minuten, dus logt het veel minder vaak in. Zonder dat opent Home-mail per account per controle één korte verbinding en sluit die weer, wat ver onder de bekende limieten blijft. Google publiceert echter geen veilig pollinterval. Klaagt een provider over te veel logins, verhoog dan het interval in de accountopties (bijvoorbeeld naar 120 of 300 seconden).
 
 ## Over
 

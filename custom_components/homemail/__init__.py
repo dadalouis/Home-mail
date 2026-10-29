@@ -18,8 +18,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, PANEL_ELEMENT, PANEL_URL, URL_FILES, VERSION
+from .const import DOMAIN, OPT_PUSH, PANEL_ELEMENT, PANEL_URL, URL_FILES, VERSION
 from .coordinator import HomemailCoordinator
+from .idle import IdleWatcher
 from .websocket import async_register_websocket
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,6 +45,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: HomemailConfigEntry) -> 
     coordinator = HomemailCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    if entry.options.get(OPT_PUSH, True):
+        coordinator.idle = IdleWatcher(coordinator)
+        coordinator.idle.start()
+        entry.async_on_unload(coordinator.idle.stop)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if not hass.data[DOMAIN]["panel"]:
         await panel_custom.async_register_panel(
