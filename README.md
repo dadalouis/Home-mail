@@ -134,6 +134,7 @@ Use the **https** address (Home Assistant Cloud, your own domain or a VPN to an 
 - Sending uses SMTP with the same login. For servers that don't keep a copy themselves, Home-mail saves one in the Sent folder.
 - Every account's inbox is checked every 60 seconds (adjustable in the account options) with a single light-weight `STATUS` command.
 - At most 20 messages can be sent per hour, as a safety net.
+- **Gmail and other providers limit how often and how much you can check.** Home-mail opens one short connection per account per check and closes it again, which stays far below the known limits. Google does not publish a safe polling interval, though. If a provider complains about too many logins, raise the interval in the account options (for example to 120 or 300 seconds). Notifications then arrive a bit later.
 
 ## About
 

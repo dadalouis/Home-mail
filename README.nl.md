@@ -119,6 +119,7 @@ Gebruik het **https**-adres (Home Assistant Cloud, eigen domein of een VPN naar 
 - Mail wordt op verzoek rechtstreeks van de IMAP-server gehaald; behalve de ongelezen-teller komt er niets in de states of de database.
 - De app praat via de websocket-API (`homemail/*`) met Home Assistant. Elke opdracht controleert of de ingelogde gebruiker dat account mag gebruiken.
 - Elke inbox wordt elke 60 seconden gecontroleerd (instelbaar per account) met één lichte `STATUS`-opdracht.
+- **Gmail en andere providers beperken hoe vaak en hoeveel je mag controleren.** Home-mail opent per account per controle één korte verbinding en sluit die weer, wat ver onder de bekende limieten blijft. Google publiceert echter geen veilig pollinterval. Klaagt een provider over te veel logins, verhoog dan het interval in de accountopties (bijvoorbeeld naar 120 of 300 seconden). Meldingen komen dan iets later binnen.
 
 ## Over
 
