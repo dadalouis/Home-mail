@@ -10,7 +10,7 @@ import logging
 import threading
 from typing import TYPE_CHECKING
 
-from . import mail
+from . import issues, mail
 
 if TYPE_CHECKING:
     from .coordinator import HomemailCoordinator
@@ -44,6 +44,7 @@ class IdleWatcher:
         self._stop = threading.Event()
         self._conn: imaplib.IMAP4 | None = None
         self._thread: threading.Thread | None = None
+        self._failures = 0
 
     def start(self) -> None:
         if not supported():
@@ -77,6 +78,9 @@ class IdleWatcher:
                     return
                 self.state, self.error, delay = "on", "", 30
                 self._to_loop(self.co.set_push, True)
+                if self._failures >= 3:
+                    self._to_loop(issues.idle_failing, self.co.hass, self.co.entry, False)
+                self._failures = 0
                 while not self._stop.is_set():
                     if wait_for_change(m, IDLE_SECONDS):
                         self._to_loop(self.co.push_refresh)
@@ -86,6 +90,9 @@ class IdleWatcher:
                 self.state, self.error = "error", f"{type(err).__name__}: {err}"[:200]
                 _LOGGER.debug("IDLE for %s stopped, trying again in %s s: %s", self.co.cfg["email"], delay, err)
                 self._to_loop(self.co.set_push, False)
+                self._failures += 1
+                if self._failures == 3:
+                    self._to_loop(issues.idle_failing, self.co.hass, self.co.entry, True, self.error)
                 self._stop.wait(delay)
                 delay = min(delay * 2, 900)
             finally:

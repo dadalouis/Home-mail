@@ -36,6 +36,17 @@
         "title": "Log in again",
         "description": "The mail server refused the password for {email}. Enter a new (app) password.",
         "data": { "password": "Password or app password" }
+      },
+      "reconfigure": {
+        "title": "Change account",
+        "description": "Change the servers or the password of {email}. Leave the password empty to keep the current one. The login is tested before saving.",
+        "data": {
+          "imap_server": "IMAP server",
+          "imap_port": "IMAP port",
+          "smtp_server": "SMTP server",
+          "smtp_port": "SMTP port",
+          "password": "New password or app password (optional)"
+        }
       }
     },
     "error": {
@@ -47,7 +58,8 @@
     },
     "abort": {
       "already_configured": "This account is already added.",
-      "reauth_successful": "Password updated."
+      "reauth_successful": "Password updated.",
+      "reconfigure_successful": "Account settings updated."
     }
   },
   "options": {
@@ -70,7 +82,7 @@
           "signature": "The closing added below your messages, e.g. 'Kind regards, Alex'.",
           "sent_folder": "Leave empty to detect it automatically (Gmail keeps a copy itself).",
           "users": "Leave empty to allow all administrators.",
-          "push": "Keeps one connection open so new mail arrives at once; the regular check then runs every 15 minutes. Takes effect after reloading the account."
+          "push": "Keeps one connection open so new mail arrives at once; the regular check then runs every 15 minutes."
         }
       }
     }
@@ -88,6 +100,16 @@
   "entity": {
     "sensor": {
       "unread": { "name": "Unread" }
+    }
+  },
+  "issues": {
+    "shared_with_admins": {
+      "title": "Every administrator can read {account}",
+      "description": "Nobody is chosen under *Users who may use this account* for the mail account {account}, so every Home Assistant administrator can read it and gets its notifications. Choose the users in the account options, or in the account screen of the Home-mail app."
+    },
+    "idle_failing": {
+      "title": "Instant new mail does not work for {account}",
+      "description": "Home-mail could not keep the IMAP IDLE connection for {account} open ({error}). It keeps checking for new mail regularly, so nothing is lost, only slower. If this stays, turn off *Instant new mail* in the account options."
     }
   }
 }
