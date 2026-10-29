@@ -5,7 +5,7 @@
 const CSP_ON = "default-src 'none'; img-src https: data:; style-src 'unsafe-inline' https:; font-src https: data:";
 const CSP_OFF = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:"; // remote images off
 const IC = {
-  back: "M15 6l-6 6 6 6", refresh: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5", search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5",
+  back: "M15 6l-6 6 6 6", copy: "M9 9h11v11H9zM5 15H4V4h11v1", refresh: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5", search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5",
   flag: "M5 21V4h12l-2 4 2 4H5", archive: "M3 4h18v4H3zM5 8v12h14V8M10 12h4", trashcan: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
   seen: "M3 8l9 6 9-6M3 8v10h18V8M3 8l9-5 9 5", clip: "M20 11l-8 8a5 5 0 0 1-7-7l9-9a3 3 0 0 1 4 4l-9 9a1 1 0 0 1-2-2l8-8",
   reply: "M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z", compose: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
@@ -38,7 +38,7 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen. Tap the link to copy it.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied",
+    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy",
     notifications: "Notifications", notif_on: "Notifications", notif_note: "Home-mail notifies you about new mail on your Companion app and on the web app on your home screen. These settings are yours alone.",
     notif_accounts: "Accounts", notif_which: "Which mail", notif_all: "All mail", notif_vip: "Only from my VIP list", notif_vip_list: "VIP senders", notif_mute: "Never notify for",
     notif_list_note: "One email address or domain per line, for example anna@example.com or example.com.",
@@ -56,8 +56,8 @@ const T = {
     access: "Who may use this account", you: "you", access_note: "Only these users see this account and get notifications for it.",
     access_all_admins: "Nobody chosen: every administrator can read this account and gets its notifications. Choose who may use it.",
     access_lose: "You are not in the list, so you will no longer see this account. Continue?",
-    notif_devices_note: "The Companion apps logged in with your Home Assistant user. Below each one: when the last notification went through.",
-    forget: "Forget", forget_confirm: "Stop sending notifications to this web app?", last_ok: "last sent {t}", last_fail: "failed {t}: {e}", closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
+    notif_devices_note: "The devices logged in with your Home Assistant user. Below each one: when Home Assistant last handed a notification to Apple or Google (whether it is shown, the device decides). Tap an account to stop its notifications on that device only.", web_app: "web app",
+    forget: "Forget", forget_confirm: "Stop sending notifications to this web app?", last_ok: "sent {t}", last_fail: "failed {t}: {e}", closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
     next: "Next", checking: "Checking…", password: "Password", required: "required", servers: "Servers",
@@ -100,7 +100,7 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm. Tik op de link om hem te kopiëren.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd",
+    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer",
     notifications: "Meldingen", notif_on: "Meldingen", notif_note: "Home-mail meldt nieuwe mail op je Companion-app en op de web-app op je beginscherm. Deze instellingen zijn alleen van jou.",
     notif_accounts: "Accounts", notif_which: "Welke mail", notif_all: "Alle mail", notif_vip: "Alleen van mijn VIP-lijst", notif_vip_list: "VIP-afzenders", notif_mute: "Nooit melden voor",
     notif_list_note: "Eén e-mailadres of domein per regel, bijvoorbeeld anna@voorbeeld.nl of voorbeeld.nl.",
@@ -118,8 +118,8 @@ const T = {
     access: "Wie mag dit account gebruiken", you: "jij", access_note: "Alleen deze gebruikers zien dit account en krijgen er meldingen van.",
     access_all_admins: "Niemand gekozen: alle beheerders kunnen dit account lezen en krijgen de meldingen. Kies wie het mag gebruiken.",
     access_lose: "Je staat zelf niet in de lijst, dus je ziet dit account dan niet meer. Doorgaan?",
-    notif_devices_note: "De Companion-apps die met jouw Home Assistant-gebruiker zijn ingelogd. Onder elk apparaat: wanneer de laatste melding aankwam.",
-    forget: "Vergeet", forget_confirm: "Geen meldingen meer naar deze web-app sturen?", last_ok: "laatst verstuurd {t}", last_fail: "mislukt {t}: {e}", closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
+    notif_devices_note: "De apparaten die met jouw Home Assistant-gebruiker zijn ingelogd. Onder elk apparaat: wanneer Home Assistant de laatste melding aan Apple of Google gaf (of hij verschijnt, bepaalt het apparaat). Tik op een account om zijn meldingen alleen op dat apparaat uit te zetten.", web_app: "web-app",
+    forget: "Vergeet", forget_confirm: "Geen meldingen meer naar deze web-app sturen?", last_ok: "verstuurd {t}", last_fail: "mislukt {t}: {e}", closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
     next: "Volgende", checking: "Controleren…", password: "Wachtwoord", required: "vereist", servers: "Servers",
@@ -942,12 +942,13 @@ class HomemailApp extends HTMLElement {
             <label class="item"><span class="text"><span class="name">${this.t("default_account")}</span><select data-opt="default">${accs.map((a) => `<option value="${esc(a)}"${a === s.default ? " selected" : ""}>${esc(s.accounts[a].name)}</option>`).join("")}</select></span></label>
           </div>
           <div class="explain">${this.t("settings_note")}</div>
-          <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(appUrl)}" style="flex:1;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"></div></div>
+          <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(appUrl)}" style="flex:1;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"><button type="button" class="btn" data-copy>${svg(IC.copy)}${this.t("copy")}</button></div></div>
           <div class="explain">${this.t("app_note")}${appUrl.startsWith("https:") ? "" : " " + this.t("app_note_http")}</div>
         </div></div>`;
       const url = veil.querySelector("#app-url");
       url.onfocus = () => url.select();
-      url.onclick = () => { url.select(); navigator.clipboard?.writeText(url.value).then(() => this._toast(this.t("copied")), () => {}); };
+      url.onclick = () => url.select();
+      veil.querySelector("[data-copy]").onclick = () => navigator.clipboard?.writeText(url.value).then(() => this._toast(this.t("copied")), () => url.select());
       veil.querySelector("[data-x]").onclick = close;
       veil.querySelector("[data-notif]").onclick = () => this._notifyScreen(veil, show);
       veil.querySelectorAll("[data-acc]").forEach((b) => (b.onclick = () => this._accountScreen(veil, b.dataset.acc, show)));
@@ -966,6 +967,15 @@ class HomemailApp extends HTMLElement {
     const accs = Object.entries(s.accounts || {});
     const sw = (k, label, on = n[k]) => `<label class="item"><span class="text"><span class="name">${label}</span><input type="checkbox" data-n="${k}"${on ? " checked" : ""}></span></label>`;
     const rerender = (patch) => { Object.assign(n, patch); this._notifyScreen(veil, back, n); };
+    n.device_accounts_off = n.device_accounts_off || {};
+    // "Home-mail iPhone 4f2a" -> iPhone · web app · 4f2a (older registrations: "Home-mail ngelre" -> web app ngelre)
+    const webLabel = (name) => {
+      const rest = name.replace(/^Home-mail\s*/, ""), m = rest.match(/^(iPhone|iPad|Mac|Android|Windows|Browser) (\w{4})$/);
+      return m ? { name: m[1], sub: `${t("web_app")} · ${m[2]}` } : { name: `${t("web_app")} ${rest}`.trim(), sub: "" };
+    };
+    // per device: which accounts notify there (only shown with more than one account)
+    const devAccs = (key) => accs.length < 2 ? "" : `<div class="item"><span style="width:24px"></span><span class="text" style="flex-wrap:wrap;gap:6px;padding:4px 14px 10px 0">${accs.filter(([id]) => !n.accounts_off.includes(id)).map(([id, a]) =>
+      `<button type="button" class="dayb${(n.device_accounts_off[key] || []).includes(id) ? "" : " on"}" data-dacc="${esc(key)}" data-acc-id="${esc(id)}">${esc(a.name)}</button>`).join("")}</span></div>`;
     const readText = () => veil.querySelectorAll("textarea[data-n]").forEach((el) => (n[el.dataset.n] = el.value)); // still being typed
     const dirty = () => { readText(); return JSON.stringify(n) !== saved; };
     veil.innerHTML = `<div class="sheet grey">
@@ -991,11 +1001,11 @@ class HomemailApp extends HTMLElement {
       <div class="explain">${t("notif_buttons_note")}</div>
       <div class="gtitle">${t("notif_where")}</div><div class="group">
         ${sw("app", t("notif_app"))}
-        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${[d.os, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><input type="checkbox" data-dev="${esc(d.name)}"${n.devices_off.includes(d.name) ? "" : " checked"}></span></label>`).join("") : ""}
+        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${[d.os, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><input type="checkbox" data-dev="${esc(d.name)}"${n.devices_off.includes(d.name) ? "" : " checked"}></span></label>${n.devices_off.includes(d.name) ? "" : devAccs(`app:${d.name}`)}`).join("") : ""}
         ${sw("web", t("notif_web"))}
-        ${n.web ? (s.notify_web_devices || []).map((d) => `<div class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${esc(this._lastSent(d.last) || d.entity_id)}</span></span><button type="button" class="btn" data-forget="${esc(d.name)}">${t("forget")}</button></span></div>`).join("") : ""}
+        ${n.web ? (s.notify_web_devices || []).map((d) => { const w = webLabel(d.name); return `<div class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(w.name)}<span class="sub2">${[w.sub, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn" data-forget="${esc(d.name)}">${t("forget")}</button></span></div>${devAccs(`web:${d.name}`)}`; }).join("") : ""}
       </div>
-      <div class="explain">${(s.notify_devices || []).length ? t("notif_devices_note") : t("notif_no_devices")} ${(s.notify_web_devices || []).length ? "" : t("notif_web_none")}</div>
+      <div class="explain">${(s.notify_devices || []).length || (s.notify_web_devices || []).length ? t("notif_devices_note") : t("notif_no_devices")} ${(s.notify_web_devices || []).length ? "" : t("notif_web_none")}</div>
       <div class="group"><button class="item" data-test><span class="text"><span class="name" style="color:var(--blue)">${t("notif_test")}</span></span></button></div>` : ""}
       </div></div>`;
     veil.querySelector("[data-back]").onclick = () => { if (dirty() && !confirm(t("discard_changes"))) return; back(); };
@@ -1009,6 +1019,13 @@ class HomemailApp extends HTMLElement {
     }));
     veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => {
       n.devices_off = [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev);
+    }));
+    veil.querySelectorAll("[data-dacc]").forEach((b) => (b.onclick = () => {
+      const key = b.dataset.dacc, id = b.dataset.accId, off = n.device_accounts_off[key] || [];
+      const next = off.includes(id) ? off.filter((x) => x !== id) : [...off, id];
+      const map = { ...n.device_accounts_off, [key]: next };
+      if (!next.length) delete map[key];
+      rerender({ device_accounts_off: map });
     }));
     veil.querySelectorAll("[data-day]").forEach((b) => (b.onclick = () => {
       const d = Number(b.dataset.day), days = n.days.includes(d) ? n.days.filter((x) => x !== d) : [...n.days, d];

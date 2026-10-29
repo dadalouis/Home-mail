@@ -73,9 +73,9 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
 
     def forget(self, folder: str, uid: str, gone: bool = False, **flags) -> None:
         """Keep the preloaded data in line with an action done in the app."""
-        if folder == "INBOX" and (gone or flags.get("seen")):
-            if uid in self.notified:
-                self.notified.remove(uid)
+        # only a message we notified about has a notification to take away
+        if folder == "INBOX" and (gone or flags.get("seen")) and uid in self.notified:
+            self.notified.remove(uid)
             self.hass.async_create_task(notify.async_clear(self.hass, self.entry, uid))
         if gone:
             self.bodies.pop((folder, uid), None)
@@ -147,7 +147,7 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
             _LOGGER.debug("New mail fetch failed: %s", err)
             return
         for m in new:
-            self.cache[(self.entry.entry_id, "INBOX", m["uid"])] = m
+            mail.remember(self.cache, (self.entry.entry_id, "INBOX", m["uid"]), m)
             self.hass.bus.async_fire(EVENT_NEW_MAIL, {
                 "account": self.entry.entry_id,
                 "account_name": self.entry.options.get(OPT_NAME) or self.entry.title,
@@ -156,8 +156,8 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
                 "subject": m["subject"], "preview": m["preview"], "message_id": m["message_id"],
                 "date": m["date"], "unread": unread,
             })
-            self.notified = [*self.notified, m["uid"]][-50:]
             try:
-                await notify.async_notify_new(self.hass, self.entry, m, unread)
+                if await notify.async_notify_new(self.hass, self.entry, m, unread):
+                    self.notified = [*self.notified, m["uid"]][-50:]
             except Exception as err:  # noqa: BLE001
                 _LOGGER.warning("Notifications for new mail failed: %s", err)

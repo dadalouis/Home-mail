@@ -64,3 +64,50 @@ def test_send_with_attachments(monkeypatch):
     files = {p.get_filename(): (p.get_content_type(), p.get_payload(decode=True)) for p in msg.iter_attachments()}
     assert files == {"report.pdf": ("application/pdf", b"%PDF data"), "notes.txt": ("text/plain", b"hello")}
     assert msg["Subject"] == "Hello"
+
+
+class ListImap:
+    """A folder with UIDs 101..100+n: answers FETCH by position and FETCH of headers by UID."""
+
+    def __init__(self, n):
+        self.exists, self.n, self.fetched = n, n, []
+
+    def fetch(self, rng, what):
+        a, b = (int(x) for x in rng.split(":"))
+        self.fetched.append(rng)
+        return "OK", [b"%d (UID %d FLAGS (%s))" % (i, 100 + i, b"\\Seen" if i % 2 else b"") for i in range(a, b + 1)]
+
+    def uid(self, cmd, uids, what):
+        assert cmd == "FETCH"
+        out = []
+        for u in uids.split(b","):
+            raw = b"From: Anna <anna@example.com>\r\nSubject: m" + u + b"\r\n\r\nhi"
+            out += [(b"1 (UID " + u + b" RFC822.SIZE 50 BODY[]<0> {%d}" % len(raw), raw), b")"]
+        return "OK", out
+
+    def logout(self):
+        pass
+
+
+def test_list_newest_by_position(monkeypatch):
+    imap = ListImap(40000)
+    monkeypatch.setattr(mail, "connect", lambda cfg, folder: imap)
+    rows = mail.list_messages("A", {"imap_server": "imap.example.com"}, 50, None, {})
+    assert imap.fetched == ["39951:40000"]  # no list of all 40.000 UIDs
+    assert [r["uid"] for r in rows][:2] == ["40051", "40052"] and len(rows) == 50
+    assert rows[-1]["subject"] == "m40100" and rows[-1]["seen"] is False and rows[-2]["seen"] is True
+
+
+def test_list_small_and_empty_folder(monkeypatch):
+    monkeypatch.setattr(mail, "connect", lambda cfg, folder: ListImap(3))
+    assert len(mail.list_messages("A", {"imap_server": "x"}, 50, None, {})) == 3
+    monkeypatch.setattr(mail, "connect", lambda cfg, folder: ListImap(0))
+    assert mail.list_messages("A", {"imap_server": "x"}, 50, None, {}) == []
+
+
+def test_cache_is_bounded(monkeypatch):
+    monkeypatch.setattr(mail, "MAX_CACHE", 3)
+    cache = {}
+    for i in range(5):
+        mail.remember(cache, ("A", "INBOX", str(i)), {"uid": str(i)})
+    assert list(cache) == [("A", "INBOX", "2"), ("A", "INBOX", "3"), ("A", "INBOX", "4")]

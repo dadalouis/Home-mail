@@ -21,6 +21,7 @@ from typing import Any
 
 MAX_INLINE = 3_000_000  # bytes of embedded (cid:) images per message
 TIMEOUT = 30
+MAX_CACHE = 3000  # message headers/previews kept in memory per account; the oldest go first
 
 
 class MailError(Exception):
@@ -44,11 +45,20 @@ def connect(cfg: dict, folder: str | None = "INBOX", readonly: bool = True) -> i
     m = imaplib.IMAP4_SSL(cfg["imap_server"], int(cfg["imap_port"]), timeout=TIMEOUT)
     m.login(cfg["email"], cfg["password"])
     if folder:
-        typ, _ = m.select(q(folder), readonly=readonly)
+        typ, data = m.select(q(folder), readonly=readonly)
         if typ != "OK":
             close(m)
             raise MailError("folder_not_found", folder)
+        m.exists = int(data[0]) if data and data[0] and data[0].isdigit() else None  # messages in the folder
     return m
+
+
+def remember(cache: dict, key: tuple, row: dict) -> None:
+    """Keep a message summary in memory, dropping the oldest ones above MAX_CACHE."""
+    cache.pop(key, None)
+    cache[key] = row
+    while len(cache) > MAX_CACHE:
+        cache.pop(next(iter(cache)))
 
 
 def close(m: imaplib.IMAP4) -> None:
@@ -192,13 +202,19 @@ def list_messages(account: str, cfg: dict, limit: int, search: str | None, cache
             else:
                 m.literal = s.encode("utf-8")
                 _, data = m.uid("SEARCH", "CHARSET", "UTF-8", "TEXT")
+            uids = (data[0].split() if data and data[0] else [])[-int(limit):]
+            if not uids:
+                return []
+            _, res = m.uid("FETCH", b",".join(uids), "(UID FLAGS)")
+            flags = _flags(res)
         else:
-            _, data = m.uid("SEARCH", None, "ALL")
-        uids = (data[0].split() if data and data[0] else [])[-int(limit):]
-        if not uids:
-            return []
-        _, res = m.uid("FETCH", b",".join(uids), "(UID FLAGS)")
-        flags = _flags(res)
+            # only the newest `limit` messages, by position: no list of every UID in the folder (Gmail: tens of thousands)
+            n = m.exists if m.exists is not None else 0
+            if not n:
+                return []
+            _, res = m.fetch(f"{max(1, n - int(limit) + 1)}:{n}", "(UID FLAGS)")
+            flags = _flags(res)
+            uids = sorted((u.encode() for u in flags), key=int)
         new = [u for u in uids if (account, folder, u.decode()) not in cache]
         rows = {}
         for i in range(0, len(new), 10):
@@ -210,7 +226,7 @@ def list_messages(account: str, cfg: dict, limit: int, search: str | None, cache
                 g = re.search(rb"RFC822\.SIZE (\d+)", info + b" " + tail)
                 uid = u.group(1).decode()
                 rows[uid] = summary(account, uid, raw, int(g.group(1)) if g else 0)
-                cache[(account, folder, uid)] = rows[uid]
+                remember(cache, (account, folder, uid), rows[uid])
         out = []
         for u in uids:
             u = u.decode()

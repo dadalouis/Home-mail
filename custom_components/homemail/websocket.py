@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.helpers.storage import Store
+from homeassistant.util.json import load_json
 
 from . import mail, notify
 from .const import (
@@ -34,6 +35,7 @@ CHUNK = 384 * 1024  # bytes per websocket message when downloading or uploading 
 MAX_FILE = 20 * 1024 * 1024
 MAX_TOTAL = 25 * 1024 * 1024  # all attachments of one message (providers refuse more)
 CTYPE = re.compile(r"^[\w.+-]+/[\w.+-]+$")
+HTML5_REGISTRATIONS = "html5_push_registrations.conf"  # where the html5 integration keeps web push registrations
 USER_DEFAULTS = {"sender": "", "default": "", "bcc_me": False, "images": True}
 
 
@@ -43,7 +45,7 @@ class Unauthorized(Exception):
 
 def async_register_websocket(hass: HomeAssistant) -> None:
     for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe,
-                    ws_push_register, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
+                    ws_push_register, ws_push_check, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
         websocket_api.async_register_command(hass, handler)
 
 
@@ -170,16 +172,46 @@ async def ws_settings(hass, connection, msg) -> None:
     connection.send_result(msg["id"], await _settings(hass, user))
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homemail/push_register", vol.Required("name"): vol.All(str, vol.Length(min=1, max=100))})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/push_register", vol.Required("name"): vol.All(str, vol.Length(min=1, max=100)),
+                                   vol.Optional("endpoint"): vol.All(str, vol.Length(max=2000))})
 @websocket_api.async_response
 async def ws_push_register(hass, connection, msg) -> None:
-    """The web app registered for web push under this name (html5): remember it for this user."""
+    """The web app registered for web push (html5): remember the registration for this user.
+    html5 files a subscription it already knows under its old name, so the name is looked up by endpoint.
+    html5 only makes a notify entity for a new registration when it is (re)loaded, so that is done here."""
+    regs = await hass.async_add_executor_job(_html5_registrations, hass)
+    name = next((n for n, r in regs.items() if msg.get("endpoint") and (r.get("subscription") or {}).get("endpoint") == msg["endpoint"]),
+                msg["name"])
     store, all_settings = await _store(hass)
     mine = {**USER_DEFAULTS, **all_settings.get(connection.user.id, {})}
-    mine["push"] = [*[n for n in (mine.get("push") or []) if n != msg["name"]], msg["name"]][-10:]
+    # registrations html5 no longer has (removed home-screen apps, expired subscriptions) go too
+    mine["push"] = [*[n for n in (mine.get("push") or []) if n != name and (not regs or n in regs)], name][-10:]
     all_settings[connection.user.id] = mine
     store.async_delay_save(lambda: all_settings, 1)
-    connection.send_result(msg["id"], {"ok": True})
+    if not notify.web_devices(hass, [name]):
+        for e in hass.config_entries.async_entries("html5"):
+            await hass.config_entries.async_reload(e.entry_id)
+    connection.send_result(msg["id"], {"ok": True, "name": name})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemail/push_check", vol.Required("endpoint"): vol.All(str, vol.Length(max=2000))})
+@websocket_api.async_response
+async def ws_push_check(hass, connection, msg) -> None:
+    """Does this device still get notifications for this user? (The app offers to turn them on when not.)"""
+    regs = await hass.async_add_executor_job(_html5_registrations, hass)
+    name = next((n for n, r in regs.items() if (r.get("subscription") or {}).get("endpoint") == msg["endpoint"]), None)
+    _, all_settings = await _store(hass)
+    mine = all_settings.get(connection.user.id, {}).get("push") or []
+    connection.send_result(msg["id"], {"ok": bool(name and name in mine and notify.web_devices(hass, [name]))})
+
+
+def _html5_registrations(hass: HomeAssistant) -> dict[str, dict]:
+    """The web push registrations html5 keeps (name -> registration); empty when it cannot be read."""
+    try:
+        data = load_json(hass.config.path(HTML5_REGISTRATIONS))
+    except Exception:  # noqa: BLE001
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homemail/push_remove", vol.Required("name"): str})
@@ -238,12 +270,13 @@ async def ws_list(hass, connection, msg) -> None:
             connection.send_result(msg["id"], {"messages": None, "errors": [], "cached": True})
         return
     rows, errors = [], []
-    for e in entries:
-        try:
-            part = await hass.async_add_executor_job(
-                mail.list_messages, e.entry_id, account_cfg(e), msg["limit"], msg.get("search"), e.runtime_data.cache, folder)
-        except Exception as err:  # noqa: BLE001
-            errors.append(f"{e.options.get(OPT_NAME) or e.title}: {_err(err)}"[:160])
+    # all accounts at the same time: opening All Inboxes waits for the slowest server, not for the sum
+    parts = await asyncio.gather(*(hass.async_add_executor_job(
+        mail.list_messages, e.entry_id, account_cfg(e), msg["limit"], msg.get("search"), e.runtime_data.cache, folder)
+        for e in entries), return_exceptions=True)
+    for e, part in zip(entries, parts):
+        if isinstance(part, Exception):
+            errors.append(f"{e.options.get(OPT_NAME) or e.title}: {_err(part)}"[:160])
             continue
         if plain_inbox and msg["limit"] >= 50:
             e.runtime_data.inbox = [dict(r) for r in part]

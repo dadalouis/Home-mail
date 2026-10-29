@@ -70,3 +70,19 @@ def test_clean_preview_drops_links():
     assert notify.clean_preview(text) == "Politie is op de hoogte Logo van Nextdoor Je profielfoto"
     assert notify.clean_preview("a " * 200).endswith("…")
     assert len(notify.clean_preview("a " * 200)) <= 141
+
+
+def test_clean_device_accounts():
+    out = notify.clean({"device_accounts_off": {"web:Home-mail iPhone ab12": ["E1"], "app:Pad": [], "bad": "x"}}, {})
+    assert out["device_accounts_off"] == {"web:Home-mail iPhone ab12": ["E1"]}
+
+
+def test_targets_per_device_account(monkeypatch):
+    monkeypatch.setattr(notify, "app_devices", lambda hass, user: [{"name": "iPhone", "service": "s1", "os": "iOS"},
+                                                                    {"name": "Pad", "service": "s2", "os": "iPadOS"}])
+    monkeypatch.setattr(notify, "web_devices", lambda hass, names: [{"name": n, "entity_id": f"notify.{n}"} for n in names])
+    c = cfg(device_accounts_off={"app:Pad": ["WORK"], "web:w1": ["WORK"]})
+    to = notify.targets(None, "u1", c, ["w1", "w2"], "WORK")
+    assert [d["name"] for d in to["app"]] == ["iPhone"] and to["web"] == ["notify.w2"]
+    to = notify.targets(None, "u1", c, ["w1", "w2"], "GMAIL")
+    assert len(to["app"]) == 2 and to["web"] == ["notify.w1", "notify.w2"]
