@@ -27,9 +27,14 @@ class _Any:  # stands in for Home Assistant classes that are only used in type h
 
 _stub("homeassistant")
 _stub("homeassistant.config_entries", ConfigEntry=_Any)
-_stub("homeassistant.core", HomeAssistant=_Any)
+_stub("homeassistant.core", HomeAssistant=_Any, Event=_Any, callback=lambda f: f)
 _stub("homeassistant.helpers")
 _stub("homeassistant.helpers.entity_registry", async_get=lambda hass: None)
+ISSUES = {}
+_stub("homeassistant.helpers.issue_registry",
+      IssueSeverity=types.SimpleNamespace(WARNING="warning"),
+      async_create_issue=lambda hass, domain, issue_id, **kw: ISSUES.__setitem__(issue_id, kw),
+      async_delete_issue=lambda hass, domain, issue_id: ISSUES.pop(issue_id, None))
 _stub("homeassistant.util", slugify=lambda s: re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_"),
       dt=types.SimpleNamespace(now=datetime.now))
 sys.modules["homeassistant.util.dt"] = sys.modules["homeassistant.util"].dt
@@ -41,3 +46,5 @@ sys.modules["homemail"] = pkg
 mail = importlib.import_module("homemail.mail")
 notify = importlib.import_module("homemail.notify")
 idle = importlib.import_module("homemail.idle")
+actions = importlib.import_module("homemail.actions")
+issues = importlib.import_module("homemail.issues")

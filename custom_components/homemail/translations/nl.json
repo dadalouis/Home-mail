@@ -36,6 +36,17 @@
         "title": "Opnieuw inloggen",
         "description": "De mailserver weigerde het wachtwoord van {email}. Vul een nieuw (app-)wachtwoord in.",
         "data": { "password": "Wachtwoord of app-wachtwoord" }
+      },
+      "reconfigure": {
+        "title": "Account wijzigen",
+        "description": "Wijzig de servers of het wachtwoord van {email}. Laat het wachtwoord leeg om het huidige te houden. Het inloggen wordt getest voordat het wordt opgeslagen.",
+        "data": {
+          "imap_server": "IMAP-server",
+          "imap_port": "IMAP-poort",
+          "smtp_server": "SMTP-server",
+          "smtp_port": "SMTP-poort",
+          "password": "Nieuw wachtwoord of app-wachtwoord (optioneel)"
+        }
       }
     },
     "error": {
@@ -47,7 +58,8 @@
     },
     "abort": {
       "already_configured": "Dit account is al toegevoegd.",
-      "reauth_successful": "Wachtwoord bijgewerkt."
+      "reauth_successful": "Wachtwoord bijgewerkt.",
+      "reconfigure_successful": "Accountgegevens bijgewerkt."
     }
   },
   "options": {
@@ -70,7 +82,7 @@
           "signature": "De afsluiting onder je berichten, bijv. 'Vriendelijke groet, Sanne'.",
           "sent_folder": "Leeg laten om automatisch te bepalen (Gmail bewaart zelf een kopie).",
           "users": "Leeg laten om alle beheerders toe te staan.",
-          "push": "Houdt één verbinding open zodat nieuwe mail meteen binnenkomt; de gewone controle loopt dan elke 15 minuten. Werkt na het herladen van het account."
+          "push": "Houdt één verbinding open zodat nieuwe mail meteen binnenkomt; de gewone controle loopt dan elke 15 minuten."
         }
       }
     }
@@ -88,6 +100,16 @@
   "entity": {
     "sensor": {
       "unread": { "name": "Ongelezen" }
+    }
+  },
+  "issues": {
+    "shared_with_admins": {
+      "title": "Alle beheerders kunnen {account} lezen",
+      "description": "Bij het mailaccount {account} is niemand gekozen onder *Gebruikers die dit account mogen gebruiken*, dus elke Home Assistant-beheerder kan het lezen en krijgt de meldingen. Kies de gebruikers in de accountopties, of in het accountscherm van de Home-mail-app."
+    },
+    "idle_failing": {
+      "title": "Nieuwe mail direct werkt niet voor {account}",
+      "description": "Home-mail kon de IMAP IDLE-verbinding voor {account} niet openhouden ({error}). Het blijft regelmatig op nieuwe mail controleren, dus er gaat niets verloren, alleen langzamer. Blijft dit zo, zet dan *Nieuwe mail direct* uit in de accountopties."
     }
   }
 }

@@ -146,6 +146,36 @@ class HomemailConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Change servers, ports or the password without removing the account (and its settings)."""
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+        d = entry.data
+        if user_input is not None:
+            data = {**d, CONF_IMAP_SERVER: user_input[CONF_IMAP_SERVER].strip(), CONF_IMAP_PORT: int(user_input[CONF_IMAP_PORT]),
+                    CONF_SMTP_SERVER: user_input[CONF_SMTP_SERVER].strip(), CONF_SMTP_PORT: int(user_input[CONF_SMTP_PORT])}
+            if user_input.get("password"):
+                data["password"] = _clean_password(d.get(CONF_PROVIDER, ""), user_input["password"])
+            error = await self.hass.async_add_executor_job(mail.test_account, data)
+            if error == "invalid_auth_imap" and user_input.get("password") and _needs_app_password(d.get(CONF_PROVIDER, ""), data["password"]):
+                error = "app_password_required"
+            if error:
+                errors["base"] = error
+            else:
+                return self.async_update_reload_and_abort(entry, data=data)
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema({
+                vol.Required(CONF_IMAP_SERVER, default=d[CONF_IMAP_SERVER]): str,
+                vol.Required(CONF_IMAP_PORT, default=d[CONF_IMAP_PORT]): vol.Coerce(int),
+                vol.Required(CONF_SMTP_SERVER, default=d[CONF_SMTP_SERVER]): str,
+                vol.Required(CONF_SMTP_PORT, default=d[CONF_SMTP_PORT]): vol.Coerce(int),
+                vol.Optional("password"): selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
+            }),
+            errors=errors, description_placeholders={"email": d["email"]},
+        )
+
+
 class HomemailOptionsFlow(_OptionsBase):
     """Display name, colour, signature, sent folder, who may use this account, poll interval."""
 

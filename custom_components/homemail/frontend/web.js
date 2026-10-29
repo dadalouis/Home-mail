@@ -154,22 +154,27 @@ connect();
 // After registering, HA gets a notify entity for this device; Home-mail remembers whose device it is.
 const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(s.length / 4) * 4, "=")), (c) => c.charCodeAt(0));
 
+// Subscribe this device and tell HA (html5) and Home-mail about it. Needs notification permission already.
+async function register(key) {
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) });
+  const name = "Home-mail " + Math.random().toString(36).slice(2, 8);
+  const r = await fetch(`${BASE}/api/notify.html5`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await validToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ subscription: sub.toJSON(), browser: "chrome", name }),
+  });
+  if (!r.ok) throw new Error(`${t("refused")} (${r.status})`);
+  await connection.sendMessagePromise({ type: "homemail/push_register", name }); // Home-mail now knows whose device this is
+  try { localStorage.setItem("homemail_push2", sub.endpoint); } catch (_) {}
+}
+
 async function pushOn(btn, key) {
   btn.disabled = true; btn.textContent = t("busy");
   try {
     if ((await Notification.requestPermission()) !== "granted") throw new Error(t("denied"));
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) });
-    const name = "Home-mail " + Math.random().toString(36).slice(2, 8);
-    const r = await fetch(`${BASE}/api/notify.html5`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${await validToken()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subscription: sub.toJSON(), browser: "chrome", name }),
-    });
-    if (!r.ok) throw new Error(`${t("refused")} (${r.status})`);
-    await connection.sendMessagePromise({ type: "homemail/push_register", name }); // Home-mail now knows whose device this is
-    try { localStorage.setItem("homemail_push2", sub.endpoint); } catch (_) {}
+    await register(key);
     btn.closest("#push").remove();
   } catch (e) {
     btn.disabled = false; btn.textContent = t("retry");
@@ -188,6 +193,10 @@ async function pushBar() {
   let key;
   try { key = await connection.sendMessagePromise({ type: "notify/html5/appkey" }); } catch (_) { return; }
   if (!key) return;
+  // Permission given before, but the subscription is gone (iOS drops it after a while): sign up again, no tap needed.
+  if (Notification.permission === "granted" && known) {
+    try { await register(key); return; } catch (_) { /* fall back to the button */ }
+  }
   const bar = document.createElement("div");
   bar.id = "push";
   bar.innerHTML = `<span>${t("push")}</span><button>${t("on")}</button><button class="x" aria-label="Close">✕</button>`;

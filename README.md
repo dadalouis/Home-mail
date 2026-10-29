@@ -82,6 +82,7 @@ Everyone sets this up for themselves under **Settings → Notifications** in Hom
 | Setting | What it does |
 |---|---|
 | Notifications | Everything on or off |
+| Buttons in the notification | Mark as read, Archive, Delete and Reply (with a text field) right from the Companion app notification; on Android Read, Archive and Reply |
 | Accounts | Which of your mail accounts notify |
 | Which mail | All mail, or only senders on your VIP list. Plus a list of senders that never notify (an address or a whole domain, one per line) |
 | Days and quiet hours | Only on the days you pick, and silent between two times (for example 22:00 to 07:00) |
@@ -109,6 +110,13 @@ Good to know:
 - An account can be shared with several users, and a user can have several accounts.
 - Once you pick users for an account, only those users get access. Administrators are not added automatically, so include yourself if you want to use it too.
 - Personal settings (default account, blind copy to myself, load images) are stored per user. The signature and colour belong to the account. New messages get a default closing with the name of the logged-in Home Assistant user, until you set your own signature.
+
+## When something is wrong
+
+- **Wrong password or new server:** Settings → Devices & services → Home-mail → ⋮ → *Reconfigure*. When the mail server refuses the password, Home Assistant asks for a new one by itself.
+- **Settings → Repairs** tells you when every administrator can read an account, or when *Instant new mail* keeps failing.
+- **Download diagnostics** (⋮ on the account) gives a file without passwords or addresses that helps with a bug report.
+- **Web app notifications stopped?** Open the web app once: it signs up again by itself.
 
 ## Access from outside your home
 

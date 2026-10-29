@@ -1,4 +1,13 @@
-### Home-mail 0.2.2
+### Home-mail 0.2.3
+
+**New**
+- **Buttons in the notification.** Mark as read, Archive, Delete and Reply right from a Companion app notification. Reply opens a text field and sends your answer with your signature, quoting the original. On Android: Read, Archive and Reply (Android shows at most three buttons). Turn them off under Settings → Notifications → *Buttons in the notification*.
+- **Change an account without removing it.** In Home Assistant: Settings → Devices & services → Home-mail → ⋮ → *Reconfigure* to change the servers, ports or the password. All settings stay.
+- **Repair notices** in Settings → Repairs when every administrator can read an account (nobody chosen), and when *Instant new mail* keeps failing for an account.
+- **Diagnostics download** for when something goes wrong (passwords and addresses are left out).
+- **Web app on the iPhone signs up for notifications again by itself** when iOS dropped the subscription after a while, as long as you allowed notifications before.
+
+### Also in this version: everything from 0.2.2
 
 **New**
 - **New mail at once (IMAP IDLE).** Home-mail keeps one connection open per account and the mail server tells it right away when something changes: new mail, or mail read or deleted in another app. The regular check then runs only every 15 minutes as a safety net, which also means far fewer logins at Gmail and other providers. On by default; turn it off per account in the account options (*Instant new mail*). Needs Home Assistant on Python 3.14 (2026.x) and a mail server with IDLE; otherwise Home-mail keeps checking as before. The account screen in the app shows which one is active.
@@ -20,4 +29,4 @@
 
 **After updating**
 - Restart Home Assistant.
-- Accounts with nobody chosen show a warning in the app: open the account in Settings and pick who may use it.
+- Accounts with nobody chosen show a warning in the app and under Settings → Repairs: open the account and pick who may use it.
