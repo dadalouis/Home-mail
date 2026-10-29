@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .coordinator import HomemailCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-IDLE_SECONDS = 25 * 60  # RFC 2177: end IDLE and start it again at least every 29 minutes
+IDLE_SECONDS = 9 * 60  # RFC 2177 allows 29 minutes, but routers often drop a connection that is quiet for ~10
 CHANGES = {"EXISTS", "EXPUNGE", "FETCH", "RECENT"}
 
 
