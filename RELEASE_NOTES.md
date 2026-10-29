@@ -4,6 +4,7 @@
 - **Version number** at the bottom of Settings, so you can see which version is running.
 
 **Fixed**
+- **Copy button** for the web app address did nothing in the Companion app and on some iPhones: it now falls back to the older way of copying, and says so when you have to copy by hand.
 - After an update, browsers sometimes kept the old app files: they are now asked for by version number.
 
 ### Home-mail 0.3.0-beta.1

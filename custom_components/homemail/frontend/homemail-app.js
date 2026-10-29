@@ -38,7 +38,7 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", older: "Load older mail", period: "Mail in this app", folders_app: "Folders in this app", folders_all: "All folders", folders_hidden: "{n} hidden", folders_note: "Hidden folders are not shown or counted in this app. They stay on the server and in your other apps.",
+    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", copy_manual: "Selected: press and hold to copy", older: "Load older mail", period: "Mail in this app", folders_app: "Folders in this app", folders_all: "All folders", folders_hidden: "{n} hidden", folders_note: "Hidden folders are not shown or counted in this app. They stay on the server and in your other apps.",
     notifications: "Notifications", notif_on: "Notifications", notif_note: "Home-mail notifies you about new mail on your Companion app and on the web app on your home screen. These settings are yours alone.",
     notif_accounts: "Accounts", notif_which: "Which mail", notif_all: "All mail", notif_vip: "Only from my VIP list", notif_vip_list: "VIP senders", notif_mute: "Never notify for",
     notif_list_note: "One email address or domain per line, for example anna@example.com or example.com.",
@@ -100,7 +100,7 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", older: "Oudere mail laden", period: "Mail in deze app", folders_app: "Mappen in deze app", folders_all: "Alle mappen", folders_hidden: "{n} verborgen", folders_note: "Verborgen mappen worden in deze app niet getoond of geteld. Ze blijven op de server en in je andere apps.",
+    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", copy_manual: "Geselecteerd: houd ingedrukt om te kopiëren", older: "Oudere mail laden", period: "Mail in deze app", folders_app: "Mappen in deze app", folders_all: "Alle mappen", folders_hidden: "{n} verborgen", folders_note: "Verborgen mappen worden in deze app niet getoond of geteld. Ze blijven op de server en in je andere apps.",
     notifications: "Meldingen", notif_on: "Meldingen", notif_note: "Home-mail meldt nieuwe mail op je Companion-app en op de web-app op je beginscherm. Deze instellingen zijn alleen van jou.",
     notif_accounts: "Accounts", notif_which: "Welke mail", notif_all: "Alle mail", notif_vip: "Alleen van mijn VIP-lijst", notif_vip_list: "VIP-afzenders", notif_mute: "Nooit melden voor",
     notif_list_note: "Eén e-mailadres of domein per regel, bijvoorbeeld anna@voorbeeld.nl of voorbeeld.nl.",
@@ -971,7 +971,18 @@ class HomemailApp extends HTMLElement {
       const url = veil.querySelector("#app-url");
       url.onfocus = () => url.select();
       url.onclick = () => url.select();
-      veil.querySelector("[data-copy]").onclick = () => navigator.clipboard?.writeText(url.value).then(() => this._toast(this.t("copied")), () => url.select());
+      veil.querySelector("[data-copy]").onclick = async () => {
+        // Clipboard API first; the Companion app and older iOS refuse it, then the old way via a selection
+        let ok = false;
+        try { await navigator.clipboard.writeText(url.value); ok = true; } catch (_) {}
+        if (!ok) {
+          url.readOnly = false; url.focus(); url.setSelectionRange(0, url.value.length);
+          try { ok = document.execCommand("copy"); } catch (_) {}
+          url.readOnly = true;
+          if (ok) url.blur();
+        }
+        this._toast(this.t(ok ? "copied" : "copy_manual"));
+      };
       veil.querySelector("[data-x]").onclick = close;
       veil.querySelector("[data-notif]").onclick = () => this._notifyScreen(veil, show);
       const per = veil.querySelector("[data-period]");
