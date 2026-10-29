@@ -114,7 +114,7 @@ def wanted(cfg: dict[str, Any], account: str, m: dict[str, Any], now) -> bool:
 def app_devices(hass: HomeAssistant, user_id: str) -> list[dict[str, str]]:
     """Companion app devices of this user: [{name, service, os}].
     The notify service is named after the device as it is called now: a name you gave it in Home Assistant
-    ("iPhone Laurence") wins over the name the app registered with ("Laurence's iPhone"), so try them in that order."""
+    ("iPhone Anna") wins over the name the app registered with ("Anna's iPhone"), so try them in that order."""
     reg = dr.async_get(hass)
     out = []
     for e in hass.config_entries.async_entries("mobile_app"):
