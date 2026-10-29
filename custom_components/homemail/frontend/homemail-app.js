@@ -256,7 +256,7 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item input[type=checkbox]::after { content:""; position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); transition:left .2s; }
 .item input[type=checkbox]:checked { background:#34c759; } .item input[type=checkbox]:checked::after { left:22px; }
 .item select, .item input[type=text], .item input[type=email], .item input[type=password], .item input[type=number] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; text-align:right; min-width:0; flex:1; }
-.item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 inherit; background:transparent; color:inherit; }
+.item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 -apple-system,system-ui,sans-serif; background:transparent; color:inherit; }
 .item textarea#a-sig { min-height:240px; }
 .item textarea.nl { min-height:70px; padding:10px 0; }
 .item input[type=time] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; }
