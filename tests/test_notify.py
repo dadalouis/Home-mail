@@ -70,3 +70,29 @@ def test_clean_preview_drops_links():
     assert notify.clean_preview(text) == "Politie is op de hoogte Logo van Nextdoor Je profielfoto"
     assert notify.clean_preview("a " * 200).endswith("…")
     assert len(notify.clean_preview("a " * 200)) <= 141
+
+
+def test_clean_device_accounts():
+    out = notify.clean({"device_accounts_off": {"web:Home-mail iPhone ab12": ["E1"], "app:Pad": [], "bad": "x"}}, {})
+    assert out["device_accounts_off"] == {"web:Home-mail iPhone ab12": ["E1"]}
+
+
+def test_targets_per_device_account(monkeypatch):
+    monkeypatch.setattr(notify, "app_devices", lambda hass, user: [{"name": "iPhone", "service": "s1", "os": "iOS"},
+                                                                    {"name": "Pad", "service": "s2", "os": "iPadOS"}])
+    monkeypatch.setattr(notify, "web_devices", lambda hass, names: [{"name": n, "entity_id": f"notify.{n}"} for n in names])
+    c = cfg(device_accounts_off={"app:Pad": ["WORK"], "web:w1": ["WORK"]})
+    to = notify.targets(None, "u1", c, ["w1", "w2"], "WORK")
+    assert [d["name"] for d in to["app"]] == ["iPhone"] and to["web"] == ["notify.w2"] and to["web_names"] == {"notify.w2": "w2"}
+    to = notify.targets(None, "u1", c, ["w1", "w2"], "GMAIL")
+    assert len(to["app"]) == 2 and to["web"] == ["notify.w1", "notify.w2"]
+
+
+def test_since_date():
+    from datetime import date
+    today = date(2026, 3, 31)
+    assert notify.since_date({"n": 2, "unit": "w"}, today) == "2026-03-17"
+    assert notify.since_date({"n": 10, "unit": "d"}, today) == "2026-03-21"
+    assert notify.since_date({"n": 1, "unit": "m"}, today) == "2026-02-28"  # no 31 February
+    assert notify.since_date({"n": 1, "unit": "y"}, date(2028, 2, 29)) == "2027-02-28"
+    assert notify.since_date({"all": True}, today) is None and notify.since_date(None, today) is None

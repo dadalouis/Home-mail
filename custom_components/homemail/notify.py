@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 import re
 import time
+from calendar import monthrange
+from datetime import date, timedelta
 from typing import Any
 from urllib.parse import quote
 
@@ -12,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.util import dt as dt_util, slugify
 
-from . import actions
+from . import actions, mail
 from .const import DOMAIN, OPT_NAME, PANEL_URL
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,7 +35,9 @@ NOTIFY_DEFAULTS: dict[str, Any] = {
     "app": True,  # Companion app
     "web": True,  # web app (html5 push)
     "devices_off": [],  # Companion devices (names) that do not notify
+    "device_accounts_off": {},  # "app:<name>" / "web:<name>" -> entry ids of accounts that do not notify on that device
 }
+WEB_TTL = 3600  # seconds; a web push that cannot be delivered within an hour is dropped (no old mail later)
 HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
@@ -56,6 +60,9 @@ def clean(raw: dict[str, Any], old: dict[str, Any]) -> dict[str, Any]:
     for k in ("accounts_off", "devices_off"):
         if isinstance(raw.get(k), list):
             out[k] = [str(x)[:100] for x in raw[k]][:100]
+    if isinstance(raw.get("device_accounts_off"), dict):
+        out["device_accounts_off"] = {str(d)[:120]: [str(x)[:100] for x in v][:100]
+                                      for d, v in list(raw["device_accounts_off"].items())[:50] if isinstance(v, list) and v}
     return out
 
 
@@ -147,10 +154,6 @@ def web_devices(hass: HomeAssistant, names: list[str]) -> list[dict[str, str]]:
     return out
 
 
-def web_entities(hass: HomeAssistant, names: list[str]) -> list[str]:
-    return [d["entity_id"] for d in web_devices(hass, names)]
-
-
 def unread_total(hass: HomeAssistant, user, entry: ConfigEntry | None = None, unread: int | None = None) -> int:
     """Unread messages over all accounts this user may use (the red number on the app icon)."""
     from .websocket import _accounts
@@ -169,10 +172,51 @@ def delivery(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
     return hass.data[DOMAIN].setdefault("delivery", {})
 
 
-def targets(hass: HomeAssistant, user_id: str, cfg: dict[str, Any], web_names: list[str]) -> dict[str, Any]:
-    app = [d for d in app_devices(hass, user_id) if d["name"] not in cfg["devices_off"]] if cfg["app"] else []
-    web = web_entities(hass, web_names) if cfg["web"] else []
-    return {"app": app, "web": web}
+def targets(hass: HomeAssistant, user_id: str, cfg: dict[str, Any], web_names: list[str],
+            account: str | None = None) -> dict[str, Any]:
+    """Devices to notify. With `account`: only the devices where that account is not switched off."""
+    off = cfg.get("device_accounts_off") or {}
+    app = [d for d in app_devices(hass, user_id) if d["name"] not in cfg["devices_off"]
+           and account not in off.get(f"app:{d['name']}", [])] if cfg["app"] else []
+    web = [d for d in web_devices(hass, web_names) if account not in off.get(f"web:{d['name']}", [])] if cfg["web"] else []
+    return {"app": app, "web": [d["entity_id"] for d in web], "web_names": {d["entity_id"]: d["name"] for d in web}}
+
+
+UNITS = {"d": 1, "w": 7}  # months and years are counted on the calendar
+
+
+def since_date(window: dict | None, today: date) -> str | None:
+    """A web app's period ({"n": 2, "unit": "w"}; {"all": true} or nothing = everything) -> first day, '2026-10-15'."""
+    if not isinstance(window, dict) or window.get("all") or window.get("unit") not in ("d", "w", "m", "y"):
+        return None
+    n = max(0, min(int(window.get("n") or 0), 100 * 365))
+    if window["unit"] in UNITS:
+        return (today - timedelta(days=n * UNITS[window["unit"]])).isoformat()
+    months = today.year * 12 + today.month - 1 - (n * 12 if window["unit"] == "y" else n)
+    y, mo = divmod(months, 12)
+    if y < 1:
+        return None
+    return date(y, mo + 1, min(today.day, monthrange(y, mo + 1)[1])).isoformat()
+
+
+async def web_badges(hass: HomeAssistant, user, to: dict[str, Any], windows: dict, total: int) -> dict[str, int]:
+    """The red number per web app: unread mail within the period that web app shows (or all unread)."""
+    from .coordinator import account_cfg  # late import: the coordinator imports this module
+    from .websocket import _accounts
+
+    out, per_day = {}, {}
+    for ent in to["web"]:
+        day = since_date(windows.get(to["web_names"].get(ent)), dt_util.now().date())
+        if day and day not in per_day:
+            n = 0
+            for e in _accounts(hass, user).values():
+                try:
+                    n += await hass.async_add_executor_job(mail.unseen_since, account_cfg(e), day)
+                except Exception:  # noqa: BLE001
+                    n += (e.runtime_data.data or {}).get("unread", 0) if e.runtime_data else 0
+            per_day[day] = n
+        out[ent] = per_day[day] if day else total
+    return out
 
 
 URL = re.compile(r"(?:https?://|www\.)\S+", re.I)
@@ -206,7 +250,7 @@ def tag_for(entry: ConfigEntry, uid: str) -> str:
 # ---------- sending ----------
 
 async def _send(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], badge: int, cfg: dict[str, Any],
-                to: dict[str, Any], account_label: str | None) -> None:
+                to: dict[str, Any], account_label: str | None, web_badge: dict[str, int] | None = None) -> None:
     sender = m.get("name") or m.get("address") or "Home-mail"
     title = f"{sender} · {account_label}" if account_label else sender
     subject = m.get("subject") or "(no subject)"
@@ -222,38 +266,50 @@ async def _send(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], badg
         if cfg["buttons"]:
             data["actions"] = actions.buttons(hass, entry.entry_id, m["uid"], d["os"])
         await _call(hass, "notify", d["service"], {"title": title, "message": message, "data": data}, keys=[f"app:{d['service']}"])
-    if to["web"]:
-        payload = {"title": title, "message": message, "tag": tag,
-                   "data": {"message_id": m.get("message_id") or "", "unread": badge}}
+    groups: dict[int, list[str]] = {}  # web apps with the same red number get one push call
+    for ent in to["web"]:
+        groups.setdefault((web_badge or {}).get(ent, badge), []).append(ent)
+    for n, ents in groups.items():
+        payload = {"title": title, "message": message, "tag": tag, "urgency": "high", "ttl": WEB_TTL,
+                   "data": {"message_id": m.get("message_id") or "", "unread": n}}
         if not cfg["sound"]:
             payload["silent"] = True
-        await _call(hass, "html5", "send_message", payload, {"entity_id": to["web"]}, keys=[f"web:{x}" for x in to["web"]])
+        await _call(hass, "html5", "send_message", payload, {"entity_id": ents}, keys=[f"web:{x}" for x in ents])
 
 
-async def async_notify_new(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], unread: int) -> None:
-    """One new message: tell every user who may read this account and wants to hear about it."""
+async def async_notify_new(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], unread: int) -> bool:
+    """One new message: tell every user who may read this account and wants to hear about it.
+    True when a notification went out to at least one device (only then is there one to take away later)."""
     from .websocket import _accounts, _may_use, _store  # late import: websocket imports the coordinator
 
     _, all_settings = await _store(hass)
     now = dt_util.now()
+    sent = False
     for user in await hass.auth.async_get_users():
         if not _may_use(entry, user):
             continue
         cfg = settings_of(all_settings, user.id)
         if not wanted(cfg, entry.entry_id, m, now):
             continue
-        to = targets(hass, user.id, cfg, all_settings.get(user.id, {}).get("push") or [])
+        to = targets(hass, user.id, cfg, all_settings.get(user.id, {}).get("push") or [], entry.entry_id)
         if not to["app"] and not to["web"]:
             continue
         label = (entry.options.get(OPT_NAME) or entry.title) if len(_accounts(hass, user)) > 1 else None
         try:
-            await _send(hass, entry, m, unread_total(hass, user, entry, unread), cfg, to, label)
+            total = unread_total(hass, user, entry, unread)
+            windows = all_settings.get(user.id, {}).get("windows") or {}
+            badges = await web_badges(hass, user, to, windows, total) if windows else None
+            await _send(hass, entry, m, total, cfg, to, label, badges)
+            sent = True
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Notification for %s failed: %s", user.name, err)
+    return sent
 
 
 async def async_clear(hass: HomeAssistant, entry: ConfigEntry, uid: str) -> None:
-    """The message was read or removed in the app: take its notification away again."""
+    """The message was read or removed: take its notification away again on Companion apps.
+    Web apps are left alone: iOS wants every web push to show a notification and stops delivering
+    to a web app that receives pushes without one. Their notification stays until tapped or cleared."""
     from .websocket import _may_use, _store
 
     _, all_settings = await _store(hass)
@@ -262,11 +318,8 @@ async def async_clear(hass: HomeAssistant, entry: ConfigEntry, uid: str) -> None
         if not _may_use(entry, user):
             continue
         cfg = settings_of(all_settings, user.id)
-        to = targets(hass, user.id, cfg, all_settings.get(user.id, {}).get("push") or [])
-        for d in to["app"]:
+        for d in targets(hass, user.id, cfg, [], entry.entry_id)["app"]:
             await _call(hass, "notify", d["service"], {"message": "clear_notification", "data": {"tag": tag}})
-        if to["web"] and hass.services.has_service("html5", "dismiss_message"):
-            await _call(hass, "html5", "dismiss_message", {"tag": tag}, {"entity_id": to["web"]})
 
 
 async def async_badge(hass: HomeAssistant, entry: ConfigEntry, unread: int) -> None:
@@ -302,6 +355,7 @@ async def async_test(hass: HomeAssistant, user, all_settings: dict, draft: dict 
     web = 0
     if to["web"]:
         web = len(to["web"]) if await _call(hass, "html5", "send_message", {
-            "title": "Home-mail", "message": "Test notification", "tag": "homemail-test", "data": {}},
+            "title": "Home-mail", "message": "Test notification", "tag": "homemail-test", "urgency": "high", "ttl": WEB_TTL,
+            "data": {}},
             {"entity_id": to["web"]}, keys=[f"web:{x}" for x in to["web"]]) else 0
     return {"app": app, "web": web}

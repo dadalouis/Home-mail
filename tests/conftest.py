@@ -51,3 +51,18 @@ notify = importlib.import_module("homemail.notify")
 idle = importlib.import_module("homemail.idle")
 actions = importlib.import_module("homemail.actions")
 issues = importlib.import_module("homemail.issues")
+
+
+class _Coordinator:  # minimal DataUpdateCoordinator: enough to build the Home-mail coordinator in tests
+    def __class_getitem__(cls, item):
+        return cls
+
+    def __init__(self, hass, logger, name=None, config_entry=None, update_interval=None):
+        self.hass, self.update_interval, self.data = hass, update_interval, None
+
+
+_stub("homeassistant.exceptions", ConfigEntryAuthFailed=type("ConfigEntryAuthFailed", (Exception,), {}))
+_stub("homeassistant.helpers.dispatcher", async_dispatcher_send=lambda *a: None)
+_stub("homeassistant.helpers.update_coordinator", DataUpdateCoordinator=_Coordinator,
+      UpdateFailed=type("UpdateFailed", (Exception,), {}))
+coordinator = importlib.import_module("homemail.coordinator")
