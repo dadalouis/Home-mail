@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
+from . import actions
 from .const import DOMAIN, OPT_PUSH, PANEL_ELEMENT, PANEL_URL, URL_FILES, VERSION
 from .coordinator import HomemailCoordinator
 from .idle import IdleWatcher
@@ -38,6 +39,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     )
     frontend.add_extra_js_url(hass, f"{URL_FILES}/homemail-card.js?v={VERSION}")
     async_register_websocket(hass)
+    actions.async_setup(hass)
     return True
 
 

@@ -27,7 +27,7 @@ class _Any:  # stands in for Home Assistant classes that are only used in type h
 
 _stub("homeassistant")
 _stub("homeassistant.config_entries", ConfigEntry=_Any)
-_stub("homeassistant.core", HomeAssistant=_Any)
+_stub("homeassistant.core", HomeAssistant=_Any, Event=_Any, callback=lambda f: f)
 _stub("homeassistant.helpers")
 _stub("homeassistant.helpers.entity_registry", async_get=lambda hass: None)
 _stub("homeassistant.util", slugify=lambda s: re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_"),
@@ -41,3 +41,4 @@ sys.modules["homemail"] = pkg
 mail = importlib.import_module("homemail.mail")
 notify = importlib.import_module("homemail.notify")
 idle = importlib.import_module("homemail.idle")
+actions = importlib.import_module("homemail.actions")

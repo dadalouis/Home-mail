@@ -47,6 +47,7 @@ const T = {
     notif_no_devices: "No Companion app is linked to your user.", notif_web_none: "Not turned on yet: open the web app on your phone and tap the notifications button.", notif_web_n: "device(s) registered",
     notif_test: "Send test notification", notif_test_sent: "Test notification sent", notif_test_none: "No device to send to", days: "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
     attach_add: "Add attachment", tap_open: "tap to open", attach_failed: "Attachment failed: {e}", attach_big: "{n} is too big (max 20 MB)", attach_busy: "Wait until the attachments are uploaded.",
+    notif_buttons: "Buttons in the notification", notif_buttons_note: "Mark as read, Archive, Delete and Reply right from the notification in the Companion app (on Android: Read, Archive and Reply).",
     discard_changes: "Discard your changes?", all_admins: "all administrators", new_mail: "New mail", push_on: "Instant (IMAP IDLE)", push_every: "Checked every {n} min",
     push_on_note: "The mail server tells Home-mail at once about new mail, and about mail read or deleted in another app. A regular check every 15 minutes is the safety net.",
     push_off_note: "Instant new mail (IMAP IDLE) is off for this account. Turn it on in the account options in Home Assistant.",
@@ -108,6 +109,7 @@ const T = {
     notif_no_devices: "Er is geen Companion-app aan jouw gebruiker gekoppeld.", notif_web_none: "Nog niet aangezet: open de web-app op je telefoon en tik op de meldingenknop.", notif_web_n: "apparaat/apparaten aangemeld",
     notif_test: "Stuur testmelding", notif_test_sent: "Testmelding verstuurd", notif_test_none: "Geen apparaat om naar te sturen", days: "Ma,Di,Wo,Do,Vr,Za,Zo",
     attach_add: "Bijlage toevoegen", tap_open: "tik om te openen", attach_failed: "Bijlage mislukt: {e}", attach_big: "{n} is te groot (max 20 MB)", attach_busy: "Wacht tot de bijlagen zijn geüpload.",
+    notif_buttons: "Knoppen in de melding", notif_buttons_note: "Gelezen, Archiveer, Verwijder en Beantwoord direct vanuit de melding in de Companion-app (op Android: Gelezen, Archiveer en Beantwoord).",
     discard_changes: "Wijzigingen weggooien?", all_admins: "alle beheerders", new_mail: "Nieuwe mail", push_on: "Direct (IMAP IDLE)", push_every: "Elke {n} min gecontroleerd",
     push_on_note: "De mailserver meldt nieuwe mail meteen aan Home-mail, net als mail die in een andere app gelezen of verwijderd is. Een gewone controle elke 15 minuten is het vangnet.",
     push_off_note: "Nieuwe mail direct (IMAP IDLE) staat uit voor dit account. Zet het aan in de accountopties in Home Assistant.",
@@ -985,7 +987,8 @@ class HomemailApp extends HTMLElement {
         <label class="item"><span class="text"><span class="name">${t("notif_to")}</span><input type="time" data-n="quiet_to" value="${esc(n.quiet_to)}"></span></label>` : ""}
       </div>
       <div class="explain">${t("notif_quiet_note")}</div>
-      <div class="gtitle">${t("notif_show")}</div><div class="group">${sw("preview", t("notif_preview"))}${sw("sound", t("notif_sound"))}</div>
+      <div class="gtitle">${t("notif_show")}</div><div class="group">${sw("preview", t("notif_preview"))}${sw("sound", t("notif_sound"))}${sw("buttons", t("notif_buttons"))}</div>
+      <div class="explain">${t("notif_buttons_note")}</div>
       <div class="gtitle">${t("notif_where")}</div><div class="group">
         ${sw("app", t("notif_app"))}
         ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${[d.os, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><input type="checkbox" data-dev="${esc(d.name)}"${n.devices_off.includes(d.name) ? "" : " checked"}></span></label>`).join("") : ""}

@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util, slugify
 
+from . import actions
 from .const import DOMAIN, OPT_NAME, PANEL_URL
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ NOTIFY_DEFAULTS: dict[str, Any] = {
     "mute": "",  # senders that never notify
     "preview": True,
     "sound": True,
+    "buttons": True,  # Read / Archive / Delete / Reply on Companion app notifications
     "app": True,  # Companion app
     "web": True,  # web app (html5 push)
     "devices_off": [],  # Companion devices (names) that do not notify
@@ -38,7 +40,7 @@ HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 def clean(raw: dict[str, Any], old: dict[str, Any]) -> dict[str, Any]:
     """Apply changes from the app on the stored notification settings (unknown or invalid values are ignored)."""
     out = {**NOTIFY_DEFAULTS, **old}
-    for k in ("on", "quiet_on", "preview", "sound", "app", "web"):
+    for k in ("on", "quiet_on", "preview", "sound", "buttons", "app", "web"):
         if k in raw:
             out[k] = bool(raw[k])
     for k in ("quiet_from", "quiet_to"):
@@ -209,6 +211,8 @@ async def _send(hass: HomeAssistant, entry: ConfigEntry, m: dict[str, Any], badg
         data = {"group": group, "tag": tag, "url": link, "clickAction": link,
                 "push": {"badge": badge, "thread-id": group, **({} if cfg["sound"] else {"sound": "none"})},
                 "ttl": 0, "priority": "high"}
+        if cfg["buttons"]:
+            data["actions"] = actions.buttons(hass, entry.entry_id, m["uid"], d["os"])
         await _call(hass, "notify", d["service"], {"title": title, "message": message, "data": data}, keys=[f"app:{d['service']}"])
     if to["web"]:
         payload = {"title": title, "message": message, "tag": tag,
