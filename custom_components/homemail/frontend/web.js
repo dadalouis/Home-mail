@@ -62,9 +62,11 @@ function screen(html) {
   let el = document.getElementById("hm-screen");
   if (!el) { el = document.createElement("div"); el.id = "hm-screen"; document.body.appendChild(el); }
   el.innerHTML = html;
+  const c = getComputedStyle(el).backgroundColor; // the colour behind the status bar follows this screen too
+  document.documentElement.style.background = document.body.style.background = c;
   return el;
 }
-const closeScreen = () => document.getElementById("hm-screen")?.remove();
+const closeScreen = () => { document.getElementById("hm-screen")?.remove(); matchTop(); };
 const logo = `<img class="hm-icon" src="icon-180.png" alt=""><div class="hm-word">Hom<b>E</b>-mail</div>`;
 const made = `<a class="hm-made" href="${REPO}" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>${t("made")}</a>`;
 
@@ -168,11 +170,33 @@ function sinceDate(w, today = new Date()) { // same rules as notify.since_date i
 }
 const windowLabel = (w = getWindow()) => !w || w.all ? t("p_all") : t("last").replace("{n}", `${w.n} ${t("u_" + w.unit)[w.n === 1 ? 0 : 1]}`);
 app.since = sinceDate(getWindow());
-async function syncWindow() { // tell HA, so the red number in notifications counts the same period
+// The period and hidden folders of this web app are kept in Home Assistant (per registration), so they can be
+// changed from any device; the phone keeps a copy to start fast. HA's copy wins once this phone is registered.
+async function myEndpoint() {
+  try { return (await (await navigator.serviceWorker?.getRegistration())?.pushManager.getSubscription())?.endpoint || ""; } catch (_) { return ""; }
+}
+function applyDevice(r) {
+  if (!r?.name) return;
+  app.mailWindow.name = r.name;
+  if (r.window) { try { localStorage.setItem(WKEY, JSON.stringify(r.window)); } catch (_) {} }
+  app._hidden = r.hidden || {};
+  try { localStorage.setItem("homemail_hidden_folders", JSON.stringify(app._hidden)); } catch (_) {}
+  const since = sinceDate(getWindow());
+  if (since !== app.since) app.setSince(since); else if (app._mbOpen?.()) app._loadMb();
+  else app._renderMb?.();
+}
+async function syncWindow() { // tell HA what was chosen on this phone (first login, or before it was registered)
+  const endpoint = await myEndpoint();
+  if (!endpoint || !getWindow()) return;
+  try { applyDevice(await connection.sendMessagePromise({ type: "homemail/web_device", endpoint, window: getWindow(), hidden: app._hidden || {} })); } catch (_) {}
+}
+async function loadDevice() { // on opening: take over what was changed on another device
+  const endpoint = await myEndpoint();
+  if (!endpoint) return;
   try {
-    const reg = await navigator.serviceWorker?.getRegistration();
-    const sub = await reg?.pushManager.getSubscription();
-    if (sub && getWindow()) await connection.sendMessagePromise({ type: "homemail/web_window", endpoint: sub.endpoint, window: getWindow() });
+    const r = await connection.sendMessagePromise({ type: "homemail/web_device", endpoint });
+    if (r?.name && !r.window && getWindow()) return syncWindow(); // registered before periods were kept in HA
+    applyDevice(r);
   } catch (_) {}
 }
 // Choose the period: after the first login, and from Settings. Resolves when saved (true) or closed (false).
@@ -203,10 +227,33 @@ function windowScreen(first) {
     };
   });
 }
-app.mailWindow = { label: () => windowLabel(), edit: () => windowScreen(false) };
-// the period moves with the calendar: a new day, a new first day
+app.mailWindow = { name: "", label: () => windowLabel(), edit: () => windowScreen(false), apply: applyDevice };
+
+// iOS shows the page colour behind the status bar (and fades it over the top of the app): keep it the colour of
+// the screen that is open, white for a list, grey for Mailboxes, so there is no grey-to-white band at the top.
+const theme = document.querySelector('meta[name="theme-color"]');
+function matchTop() {
+  const r = app.shadowRoot, box = r?.getElementById("app");
+  if (!box) return;
+  const pane = r.querySelector(box.classList.contains("mb") ? "#mb" : "#lp");
+  const c = pane && getComputedStyle(pane).backgroundColor;
+  if (!c || c === "rgba(0, 0, 0, 0)") return;
+  document.documentElement.style.background = document.body.style.background = c;
+  theme?.setAttribute("content", c);
+}
+const watchTop = () => {
+  const box = app.shadowRoot?.getElementById("app");
+  if (!box) return setTimeout(watchTop, 200); // the app builds itself on the first connection
+  new MutationObserver(matchTop).observe(box, { attributes: true, attributeFilter: ["class"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", matchTop);
+  matchTop();
+};
+watchTop();
+// back in the app: changes made on another device, and the period moves with the calendar (a new day, a new first day)
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && app.since && sinceDate(getWindow()) !== app.since) app.setSince(sinceDate(getWindow()));
+  if (document.hidden) return;
+  if (app.since && sinceDate(getWindow()) !== app.since) app.setSince(sinceDate(getWindow()));
+  if (read()?.refresh_token) waitReady().then(loadDevice, () => {});
 });
 
 let ws = null, seq = 0, pending = new Map(), delay = 1000;
@@ -363,8 +410,11 @@ function pushBarSmall(key) {
 }
 
 async function afterLogin() {
+  await waitReady().catch(() => {});
+  await loadDevice(); // a period set for this phone from another device: no need to ask
   if (!getWindow()) await windowScreen(true);
-  pushSetup().catch(() => {});
+  await pushSetup().catch(() => {});
+  loadDevice();
 }
 
 let pushBusy = false;

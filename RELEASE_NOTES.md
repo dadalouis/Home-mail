@@ -1,3 +1,22 @@
+### Home-mail 0.3.0-beta.2
+
+This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it.
+
+**New**
+- **Devices** in Settings: every Companion app and web app of yours, each with its own screen: a name of your own (only a label, Home Assistant keeps the real name), notifications on or off, which accounts notify there, and for a web app also how much mail it shows, which folders, and *Forget*. Tapping a device under Notifications → *Where* opens the same screen.
+- **A web app's period and folders are kept in Home Assistant**, so you can change them from the Companion app too; the web app takes them over when you open it.
+- **Version number** at the bottom of Settings, so you can see which version is running.
+
+**Fixed**
+- **Settings were missing in the web app** (the button on Mailboxes was hidden there).
+- **Grey band at the top of the web app** on the iPhone: the colour behind the status bar now follows the screen that is open.
+- Buttons kept a grey background after a tap on a phone.
+- **Copy button** for the web app address did nothing in the Companion app and on some iPhones: it now falls back to the older way of copying, and says so when you have to copy by hand.
+- After an update, browsers sometimes kept the old app files: they are now asked for by version number.
+
+**After updating**
+- Restart Home Assistant, then open the web app once so it picks up its settings from Home Assistant.
+
 ### Home-mail 0.3.0-beta.1
 
 This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it.

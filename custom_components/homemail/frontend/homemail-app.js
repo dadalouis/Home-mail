@@ -38,7 +38,7 @@ const T = {
     default_account: "Default Account", sender_name: "Sender Name",
     settings_note: "New messages without a chosen account are sent from the default account. With remote images off only embedded images are shown (no tracking pixels, nothing loaded from outside).",
     saved: "Saved", save_failed: "Saving failed", save: "Save", account: "Account", name: "Name", email: "Email", color: "Colour",
-    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", older: "Load older mail", period: "Mail in this app", folders_app: "Folders in this app", folders_all: "All folders", folders_hidden: "{n} hidden", folders_note: "Hidden folders are not shown or counted in this app. They stay on the server and in your other apps.",
+    app_title: "Mail app on your phone", app_note: "Open this link in Safari, tap Share, then Add to Home Screen.", app_note_http: "This address is not https: notifications and the red badge need https (Home Assistant Cloud, your own domain or a VPN).", copied: "Copied", copy: "Copy", copy_manual: "Selected: press and hold to copy", rename: "Name for this device (only shown here; empty = original name)", devices: "Devices", this_device: "This web app", dev_name: "Name", dev_notify: "Notifications on this device", dev_from: "Notifications from", dev_off: "off", dev_tech: "Technical name", dev_period: "Mail in this app", per_all: "All mail", per_last: "Last", units: "days,weeks,months,years", dev_note: "Period and folders apply to this web app only: they are kept in Home Assistant, so you can change them from any device. Nothing is deleted.", dev_forget: "Forget this web app", older: "Load older mail", period: "Mail in this app", folders_app: "Folders in this app", folders_all: "All folders", folders_hidden: "{n} hidden", folders_note: "Hidden folders are not shown or counted in this app. They stay on the server and in your other apps.",
     notifications: "Notifications", notif_on: "Notifications", notif_note: "Home-mail notifies you about new mail on your Companion app and on the web app on your home screen. These settings are yours alone.",
     notif_accounts: "Accounts", notif_which: "Which mail", notif_all: "All mail", notif_vip: "Only from my VIP list", notif_vip_list: "VIP senders", notif_mute: "Never notify for",
     notif_list_note: "One email address or domain per line, for example anna@example.com or example.com.",
@@ -100,7 +100,7 @@ const T = {
     default_account: "Standaardaccount", sender_name: "Naam afzender",
     settings_note: "Nieuwe berichten zonder gekozen account gaan via het standaardaccount. Met afbeeldingen uit worden alleen ingesloten plaatjes getoond (geen volgpixels, niets van buiten).",
     saved: "Bewaard", save_failed: "Bewaren mislukt", save: "Bewaar", account: "Account", name: "Naam", email: "E-mail", color: "Kleur",
-    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", older: "Oudere mail laden", period: "Mail in deze app", folders_app: "Mappen in deze app", folders_all: "Alle mappen", folders_hidden: "{n} verborgen", folders_note: "Verborgen mappen worden in deze app niet getoond of geteld. Ze blijven op de server en in je andere apps.",
+    app_title: "Mail-app op je telefoon", app_note: "Open deze link in Safari, tik op Deel en kies Zet op beginscherm.", app_note_http: "Dit adres is geen https: meldingen en het rode getal werken alleen met https (Home Assistant Cloud, eigen domein of VPN).", copied: "Gekopieerd", copy: "Kopieer", copy_manual: "Geselecteerd: houd ingedrukt om te kopiëren", rename: "Naam voor dit apparaat (alleen hier zichtbaar; leeg = oorspronkelijke naam)", devices: "Apparaten", this_device: "Deze web-app", dev_name: "Naam", dev_notify: "Meldingen op dit apparaat", dev_from: "Meldingen van", dev_off: "uit", dev_tech: "Technische naam", dev_period: "Mail in deze app", per_all: "Alle mail", per_last: "Laatste", units: "dagen,weken,maanden,jaar", dev_note: "Periode en mappen gelden alleen voor deze web-app. Ze staan in Home Assistant, dus je kunt ze vanaf elk apparaat aanpassen. Er wordt niets verwijderd.", dev_forget: "Vergeet deze web-app", older: "Oudere mail laden", period: "Mail in deze app", folders_app: "Mappen in deze app", folders_all: "Alle mappen", folders_hidden: "{n} verborgen", folders_note: "Verborgen mappen worden in deze app niet getoond of geteld. Ze blijven op de server en in je andere apps.",
     notifications: "Meldingen", notif_on: "Meldingen", notif_note: "Home-mail meldt nieuwe mail op je Companion-app en op de web-app op je beginscherm. Deze instellingen zijn alleen van jou.",
     notif_accounts: "Accounts", notif_which: "Welke mail", notif_all: "Alle mail", notif_vip: "Alleen van mijn VIP-lijst", notif_vip_list: "VIP-afzenders", notif_mute: "Nooit melden voor",
     notif_list_note: "Eén e-mailadres of domein per regel, bijvoorbeeld anna@voorbeeld.nl of voorbeeld.nl.",
@@ -207,7 +207,7 @@ const CSS = `
 .bar { position:relative; display:flex; align-items:center; gap:4px; padding:8px 12px; padding-top:max(8px, env(safe-area-inset-top)); border-bottom:1px solid var(--line); color:var(--blue); }
 .bar .fill { flex:1; }
 .btn { border:0; background:transparent; color:var(--blue); border-radius:8px; padding:8px; cursor:pointer; display:inline-flex; align-items:center; gap:2px; font:inherit; font-size:17px; }
-.btn:hover { background:var(--fill); } .btn.on { color:#ff9f0a; } .btn[disabled] { opacity:.4; }
+@media (hover:hover) { .btn:hover { background:var(--fill); } } .btn.on { color:#ff9f0a; } .btn[disabled] { opacity:.4; }
 .btn.pill { border-radius:20px; padding:8px 14px; background:var(--fill); color:var(--primary-text-color, #000); }
 .back { display:none; }
 /* sidebar panel: HA-style top bar (menu button with notification dot + title), like other HA screens */
@@ -222,7 +222,7 @@ const CSS = `
 :host([panel]) .head, :host([panel]) .bar { padding-top:6px; } :host([panel]) .sbar { padding-top:10px; }
 :host([panel]) .fab, :host([panel]) .toast { bottom:22px; }
 /* stand-alone web app: no settings (they live in Home Assistant itself) */
-:host([standalone]) #mb .row1 { display:none; } :host([standalone]) #mb .head h1 { margin-top:8px; }
+
 .menu { position:absolute; right:12px; top:100%; z-index:5; background:var(--card); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.25); overflow:hidden; min-width:220px; }
 .menu button { display:flex; width:100%; align-items:center; gap:10px; border:0; background:transparent; color:var(--primary-text-color, #000); font:inherit; font-size:16px; padding:13px 16px; cursor:pointer; text-align:left; border-bottom:1px solid var(--line); }
 .menu button:last-child { border-bottom:0; }
@@ -251,6 +251,7 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item .name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .item .sub2 { display:block; font-size:13px; color:var(--grey); }
 .item .cnt { color:var(--grey); font-size:17px; } .item .chev { color:#c7c7cc; width:16px; height:16px; }
+.item .pen { color:var(--blue); width:14px; height:14px; vertical-align:-1px; }
 .item input[type=checkbox] { appearance:none; width:51px; height:31px; border-radius:16px; background:#e9e9eb; position:relative; cursor:pointer; flex:none; transition:background .2s; }
 .item input[type=checkbox]::after { content:""; position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); transition:left .2s; }
 .item input[type=checkbox]:checked { background:#34c759; } .item input[type=checkbox]:checked::after { left:22px; }
@@ -962,21 +963,32 @@ class HomemailApp extends HTMLElement {
             <label class="item"><span class="text"><span class="name">${this.t("default_account")}</span><select data-opt="default">${accs.map((a) => `<option value="${esc(a)}"${a === s.default ? " selected" : ""}>${esc(s.accounts[a].name)}</option>`).join("")}</select></span></label>
           </div>
           <div class="explain">${this.t("settings_note")}</div>
-          ${this.mailWindow ? `<div class="group"><button class="item" data-period><span style="width:24px"></span><span class="text"><span class="name">${this.t("period")}<span class="sub2">${esc(this.mailWindow.label())}</span></span>${svg(IC.next, "chev")}</span></button>
-            <button class="item" data-folders><span style="width:24px"></span><span class="text"><span class="name">${this.t("folders_app")}<span class="sub2">${esc(this._hiddenLabel())}</span></span>${svg(IC.next, "chev")}</span></button></div>` : ""}
+          <div class="group"><button class="item" data-devices><span style="width:24px"></span><span class="text"><span class="name">${this.t("devices")}<span class="sub2">${esc(this._devices().map((d) => d.label).join(", "))}</span></span>${svg(IC.next, "chev")}</span></button>
+            ${this._thisDevice() ? `<button class="item" data-thisdev><span style="width:24px"></span><span class="text"><span class="name">${this.t("this_device")}<span class="sub2">${esc(this._thisDevice().label)} · ${esc(this._windowLabel(this._thisDevice().window))}</span></span>${svg(IC.next, "chev")}</span></button>` : ""}</div>
           <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(appUrl)}" style="flex:1;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"><button type="button" class="btn" data-copy>${svg(IC.copy)}${this.t("copy")}</button></div></div>
           <div class="explain">${this.t("app_note")}${appUrl.startsWith("https:") ? "" : " " + this.t("app_note_http")}</div>
+          ${s.version ? `<div class="explain" style="text-align:center;margin-top:28px">Home-mail ${esc(s.version)}</div>` : ""}
         </div></div>`;
       const url = veil.querySelector("#app-url");
       url.onfocus = () => url.select();
       url.onclick = () => url.select();
-      veil.querySelector("[data-copy]").onclick = () => navigator.clipboard?.writeText(url.value).then(() => this._toast(this.t("copied")), () => url.select());
+      veil.querySelector("[data-copy]").onclick = async () => {
+        // Clipboard API first; the Companion app and older iOS refuse it, then the old way via a selection
+        let ok = false;
+        try { await navigator.clipboard.writeText(url.value); ok = true; } catch (_) {}
+        if (!ok) {
+          url.readOnly = false; url.focus(); url.setSelectionRange(0, url.value.length);
+          try { ok = document.execCommand("copy"); } catch (_) {}
+          url.readOnly = true;
+          if (ok) url.blur();
+        }
+        this._toast(this.t(ok ? "copied" : "copy_manual"));
+      };
       veil.querySelector("[data-x]").onclick = close;
       veil.querySelector("[data-notif]").onclick = () => this._notifyScreen(veil, show);
-      const per = veil.querySelector("[data-period]");
-      if (per) per.onclick = () => this.mailWindow.edit().then(show);
-      const fol = veil.querySelector("[data-folders]");
-      if (fol) fol.onclick = () => this._foldersScreen(veil, show);
+      veil.querySelector("[data-devices]").onclick = () => this._devicesScreen(veil, show);
+      const me = veil.querySelector("[data-thisdev]");
+      if (me) me.onclick = () => this._deviceScreen(veil, this._thisDevice().key, show);
       veil.querySelectorAll("[data-acc]").forEach((b) => (b.onclick = () => this._accountScreen(veil, b.dataset.acc, show)));
       veil.querySelector("[data-add]").onclick = () => (s.is_admin ? this._addAccount(veil, show) : this._toast(this.t("admin_only")));
       veil.querySelectorAll("[data-opt]").forEach((el) => (el.onchange = () => {
@@ -985,28 +997,101 @@ class HomemailApp extends HTMLElement {
     };
     show();
   }
-  _hiddenLabel() {
-    const n = Object.values(this._hidden).reduce((s, v) => s + v.length, 0);
-    return n ? this.t("folders_hidden", { n }) : this.t("folders_all");
+  // ---------- devices: Companion apps and web apps of this user, each with its own settings ----------
+  _webLabel(name) { // "Home-mail iPhone 4f2a" -> iPhone · web app · 4f2a (older registrations: "Home-mail ngelre" -> web app ngelre)
+    const rest = name.replace(/^Home-mail\s*/, ""), m = rest.match(/^(iPhone|iPad|Mac|Android|Windows|Browser) (\w{4})$/);
+    return m ? { name: m[1], sub: `${this.t("web_app")} · ${m[2]}` } : { name: `${this.t("web_app")} ${rest}`.trim(), sub: "" };
   }
-  // Web app: which folders it shows (the inbox always). Saved on the phone at once.
-  async _foldersScreen(veil, back) {
-    if (!this._mb?.accounts) { try { this._mb = await this._call("mailboxes", { cached: true }); } catch (_) {} }
-    if (!this._mb?.accounts) { try { this._mb = await this._call("mailboxes"); } catch (_) {} }
-    const accs = this._mb?.accounts || [];
+  _devices() {
+    const s = this._set || {}, n = s.notify || {}, labels = n.device_labels || {};
+    return [...(s.notify_devices || []).map((d) => ({ key: `app:${d.name}`, kind: "app", name: d.name, std: d.name, sub: d.os, last: d.last, off: (n.devices_off || []).includes(d.name) })),
+      ...(s.notify_web_devices || []).map((d) => { const w = this._webLabel(d.name); return { key: `web:${d.name}`, kind: "web", name: d.name, std: w.name, sub: w.sub, last: d.last,
+        off: (n.devices_off || []).includes(`web:${d.name}`), window: d.window, hidden: d.hidden || {} }; })]
+      .map((d) => ({ ...d, label: labels[d.key] || d.std }));
+  }
+  _thisDevice() { const me = this.mailWindow?.name; return me ? this._devices().find((d) => d.key === `web:${me}`) : null; }
+  _windowLabel(w) {
+    if (!w || w.all) return this.t("per_all");
+    const u = this.t("units").split(",")[["d", "w", "m", "y"].indexOf(w.unit)] || "";
+    return `${this.t("per_last")} ${w.n} ${u}`;
+  }
+  _devicesScreen(veil, back) {
+    const row = (d) => `<button class="item" data-device="${esc(d.key)}"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.label)}<span class="sub2">${[d.kind === "web" ? this._windowLabel(d.window) : "", d.sub, d.off ? this.t("dev_off") : this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span>${svg(IC.next, "chev")}</span></button>`;
+    const list = this._devices();
     veil.innerHTML = `<div class="sheet grey">
-      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${this.t("back")}</button><b>${this.t("folders_app")}</b><span style="width:80px"></span></div>
-      <div class="scroll">${accs.map((a) => `<div class="gtitle" style="margin-top:18px">${esc(a.name)}</div><div class="group">${a.folders.map((f) =>
-        `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(f.kind === "custom" ? f.path : this.t(f.kind))}</span><input type="checkbox" data-hf="${esc(a.account)}" data-f="${esc(f.folder)}"${f.kind === "inbox" ? " checked disabled" : (this._hidden[a.account] || []).includes(f.folder) ? "" : " checked"}></span></label>`).join("")}</div>`).join("")}
-      <div class="explain">${this.t("folders_note")}</div></div></div>`;
-    veil.querySelector("[data-back]").onclick = () => { this._loadMb(); back(); };
-    veil.querySelectorAll("[data-hf]").forEach((el) => (el.onchange = () => {
-      const acc = el.dataset.hf, list = (this._hidden[acc] || []).filter((x) => x !== el.dataset.f);
-      if (!el.checked) list.push(el.dataset.f);
-      if (list.length) this._hidden[acc] = list; else delete this._hidden[acc];
-      store("homemail_hidden_folders", this._hidden);
-      this._renderMb();
+      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${this.t("back")}</button><b>${this.t("devices")}</b><span style="width:80px"></span></div>
+      <div class="scroll">${["app", "web"].map((k) => list.some((d) => d.kind === k) ? `<div class="gtitle" style="margin-top:18px">${this.t(k === "app" ? "notif_app" : "notif_web")}</div><div class="group">${list.filter((d) => d.kind === k).map(row).join("")}</div>` : "").join("")}
+      ${list.length ? "" : `<div class="explain" style="margin-top:18px">${this.t("notif_no_devices")} ${this.t("notif_web_none")}</div>`}</div></div>`;
+    veil.querySelector("[data-back]").onclick = back;
+    veil.querySelectorAll("[data-device]").forEach((b) => (b.onclick = () => this._deviceScreen(veil, b.dataset.device, () => this._devicesScreen(veil, back))));
+  }
+  async _deviceScreen(veil, key, back) {
+    const d = this._devices().find((x) => x.key === key);
+    if (!d) return back();
+    const t = (k) => this.t(k), n = this._set.notify, accs = Object.entries(this._set.accounts || {});
+    if (d.kind === "web" && !this._mb?.accounts) { try { this._mb = await this._call("mailboxes", { cached: true }); } catch (_) {} if (!this._mb?.accounts) try { this._mb = await this._call("mailboxes"); } catch (_) {} }
+    const offAcc = (n.device_accounts_off || {})[key] || [];
+    const w = d.window || { all: true }, units = t("units").split(",");
+    veil.innerHTML = `<div class="sheet grey">
+      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${t("back")}</button><b>${esc(d.label)}</b><span style="width:80px"></span></div>
+      <div class="scroll"><div class="group" style="margin-top:18px">
+        <button class="item" data-rename><span class="text"><span class="name">${t("dev_name")}</span><span class="cnt">${esc(d.label)} ${svg(IC.compose, "pen")}</span></span></button>
+        <label class="item"><span class="text"><span class="name">${t("dev_notify")}</span><input type="checkbox" data-on${d.off ? "" : " checked"}></span></label></div>
+      <div class="explain">${t("dev_tech")}: ${esc(d.name)}${d.sub ? " · " + esc(d.sub) : ""}${d.last ? " · " + esc(this._lastSent(d.last)) : ""}</div>
+      ${!d.off && accs.length ? `<div class="gtitle">${t("dev_from")}</div><div class="group">${accs.map(([id, a]) => `<label class="item"><span class="acc" style="background:${esc(a.color)};width:12px;height:12px;margin:0 6px"></span><span class="text"><span class="name">${esc(a.name)}${n.accounts_off.includes(id) ? `<span class="sub2">${t("dev_off")} (${t("notifications")})</span>` : ""}</span><input type="checkbox" data-acc-on="${esc(id)}"${offAcc.includes(id) ? "" : " checked"}${n.accounts_off.includes(id) ? " disabled" : ""}></span></label>`).join("")}</div>` : ""}
+      ${d.kind === "web" ? `<div class="gtitle">${t("dev_period")}</div><div class="group">
+        <label class="item"><span class="text"><span class="name">${t("per_all")}</span><input type="checkbox" data-all${w.all ? " checked" : ""}></span></label>
+        ${w.all ? "" : `<div class="item"><span class="text"><span class="name">${t("per_last")}</span><input type="number" data-pn min="1" max="999" inputmode="numeric" value="${Number(w.n) || 2}" style="width:64px;text-align:right;border:0;background:transparent;color:inherit;font:inherit;font-size:17px"><select data-pu>${["d", "w", "m", "y"].map((u, i) => `<option value="${u}"${w.unit === u ? " selected" : ""}>${esc(units[i])}</option>`).join("")}</select></span></div>`}</div>
+      ${(this._mb?.accounts || []).map((a) => `<div class="gtitle">${t("folders_app")} · ${esc(a.name)}</div><div class="group">${a.folders.map((f) =>
+        `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(f.kind === "custom" ? f.path : t(f.kind))}</span><input type="checkbox" data-hf="${esc(a.account)}" data-f="${esc(f.folder)}"${f.kind === "inbox" ? " checked disabled" : (d.hidden[a.account] || []).includes(f.folder) ? "" : " checked"}></span></label>`).join("")}</div>`).join("")}
+      <div class="explain">${t("dev_note")}</div>
+      <div class="group"><button class="item" data-forget><span class="text"><span class="name" style="color:#ff3b30">${t("dev_forget")}</span></span></button></div>` : ""}
+      </div></div>`;
+    const again = () => this._deviceScreen(veil, key, back);
+    const saveNotify = async (patch) => { try { this._set = await this._call("settings", { changes: { notify: patch } }); } catch (_) { this._toast(t("save_failed")); } again(); };
+    const saveWeb = async (patch) => {
+      try {
+        const r = await this._call("web_device", { name: d.name, ...patch });
+        if (this.mailWindow?.name === d.name) this.mailWindow.apply(r); // this phone: use it right away
+        this._set = await this._call("settings");
+      } catch (_) { this._toast(t("save_failed")); }
+      again();
+    };
+    veil.querySelector("[data-back]").onclick = back;
+    veil.querySelector("[data-rename]").onclick = () => {
+      const v = prompt(t("rename"), d.label);
+      if (v === null) return;
+      const map = { ...(n.device_labels || {}) };
+      if (v.trim() && v.trim() !== d.std) map[key] = v.trim().slice(0, 40); else delete map[key];
+      saveNotify({ device_labels: map });
+    };
+    veil.querySelector("[data-on]").onchange = (e) => {
+      const id = d.kind === "app" ? d.name : key, off = (n.devices_off || []).filter((x) => x !== id);
+      saveNotify({ devices_off: e.target.checked ? off : [...off, id] });
+    };
+    veil.querySelectorAll("[data-acc-on]").forEach((el) => (el.onchange = () => {
+      const id = el.dataset.accOn, next = offAcc.filter((x) => x !== id), map = { ...(n.device_accounts_off || {}) };
+      if (!el.checked) next.push(id);
+      if (next.length) map[key] = next; else delete map[key];
+      saveNotify({ device_accounts_off: map });
     }));
+    const all = veil.querySelector("[data-all]");
+    if (all) all.onchange = () => saveWeb({ window: all.checked ? { all: true } : { n: 2, unit: "w" } });
+    const pn = veil.querySelector("[data-pn]"), pu = veil.querySelector("[data-pu]");
+    const period = () => saveWeb({ window: { n: Math.max(1, Math.min(999, parseInt(pn.value, 10) || 1)), unit: pu.value } });
+    if (pn) { pn.onchange = period; pu.onchange = period; }
+    veil.querySelectorAll("[data-hf]").forEach((el) => (el.onchange = () => {
+      const hidden = { ...d.hidden }, acc = el.dataset.hf, list = (hidden[acc] || []).filter((x) => x !== el.dataset.f);
+      if (!el.checked) list.push(el.dataset.f);
+      if (list.length) hidden[acc] = list; else delete hidden[acc];
+      saveWeb({ hidden });
+    }));
+    const fg = veil.querySelector("[data-forget]");
+    if (fg) fg.onclick = async () => {
+      if (!confirm(t("forget_confirm"))) return;
+      try { this._set = await this._call("push_remove", { name: d.name }); } catch (_) { this._toast(t("save_failed")); return; }
+      back();
+    };
   }
   _notifyScreen(veil, back, draft) {
     // changes are kept in a draft and only saved with the Save button
@@ -1017,14 +1102,8 @@ class HomemailApp extends HTMLElement {
     const sw = (k, label, on = n[k]) => `<label class="item"><span class="text"><span class="name">${label}</span><input type="checkbox" data-n="${k}"${on ? " checked" : ""}></span></label>`;
     const rerender = (patch) => { Object.assign(n, patch); this._notifyScreen(veil, back, n); };
     n.device_accounts_off = n.device_accounts_off || {};
-    // "Home-mail iPhone 4f2a" -> iPhone · web app · 4f2a (older registrations: "Home-mail ngelre" -> web app ngelre)
-    const webLabel = (name) => {
-      const rest = name.replace(/^Home-mail\s*/, ""), m = rest.match(/^(iPhone|iPad|Mac|Android|Windows|Browser) (\w{4})$/);
-      return m ? { name: m[1], sub: `${t("web_app")} · ${m[2]}` } : { name: `${t("web_app")} ${rest}`.trim(), sub: "" };
-    };
-    // per device: which accounts notify there (only shown with more than one account)
-    const devAccs = (key) => accs.length < 2 ? "" : `<div class="item"><span style="width:24px"></span><span class="text" style="flex-wrap:wrap;gap:6px;padding:4px 14px 10px 0">${accs.filter(([id]) => !n.accounts_off.includes(id)).map(([id, a]) =>
-      `<button type="button" class="dayb${(n.device_accounts_off[key] || []).includes(id) ? "" : " on"}" data-dacc="${esc(key)}" data-acc-id="${esc(id)}">${esc(a.name)}</button>`).join("")}</span></div>`;
+    // devices open their own screen (name, on/off, accounts; web apps also period and folders)
+    const devRows = (kind) => this._devices().filter((d) => d.kind === kind).map((d) => `<button class="item" data-device="${esc(d.key)}"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.label)}<span class="sub2">${[d.sub, d.off ? t("dev_off") : this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span>${svg(IC.next, "chev")}</span></button>`).join("");
     const readText = () => veil.querySelectorAll("textarea[data-n]").forEach((el) => (n[el.dataset.n] = el.value)); // still being typed
     const dirty = () => { readText(); return JSON.stringify(n) !== saved; };
     veil.innerHTML = `<div class="sheet grey">
@@ -1050,9 +1129,9 @@ class HomemailApp extends HTMLElement {
       <div class="explain">${t("notif_buttons_note")}</div>
       <div class="gtitle">${t("notif_where")}</div><div class="group">
         ${sw("app", t("notif_app"))}
-        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${[d.os, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><input type="checkbox" data-dev="${esc(d.name)}"${n.devices_off.includes(d.name) ? "" : " checked"}></span></label>${n.devices_off.includes(d.name) ? "" : devAccs(`app:${d.name}`)}`).join("") : ""}
+        ${n.app ? devRows("app") : ""}
         ${sw("web", t("notif_web"))}
-        ${n.web ? (s.notify_web_devices || []).map((d) => { const w = webLabel(d.name); return `<div class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(w.name)}<span class="sub2">${[w.sub, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn" data-forget="${esc(d.name)}">${t("forget")}</button></span></div>${devAccs(`web:${d.name}`)}`; }).join("") : ""}
+        ${n.web ? devRows("web") : ""}
       </div>
       <div class="explain">${(s.notify_devices || []).length || (s.notify_web_devices || []).length ? t("notif_devices_note") : t("notif_no_devices")} ${(s.notify_web_devices || []).length ? "" : t("notif_web_none")}</div>
       <div class="group"><button class="item" data-test><span class="text"><span class="name" style="color:var(--blue)">${t("notif_test")}</span></span></button></div>` : ""}
@@ -1066,24 +1145,16 @@ class HomemailApp extends HTMLElement {
     veil.querySelectorAll("[data-accn]").forEach((el) => (el.onchange = () => {
       n.accounts_off = [...veil.querySelectorAll("[data-accn]")].filter((x) => !x.checked).map((x) => x.dataset.accn);
     }));
-    veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => {
-      n.devices_off = [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev);
-    }));
-    veil.querySelectorAll("[data-dacc]").forEach((b) => (b.onclick = () => {
-      const key = b.dataset.dacc, id = b.dataset.accId, off = n.device_accounts_off[key] || [];
-      const next = off.includes(id) ? off.filter((x) => x !== id) : [...off, id];
-      const map = { ...n.device_accounts_off, [key]: next };
-      if (!next.length) delete map[key];
-      rerender({ device_accounts_off: map });
+    veil.querySelectorAll("[data-device]").forEach((b) => (b.onclick = () => {
+      readText();
+      this._deviceScreen(veil, b.dataset.device, () => { // back here: keep what was typed, take the device settings as saved
+        const sv = this._set.notify;
+        this._notifyScreen(veil, back, { ...n, devices_off: sv.devices_off, device_accounts_off: sv.device_accounts_off, device_labels: sv.device_labels });
+      });
     }));
     veil.querySelectorAll("[data-day]").forEach((b) => (b.onclick = () => {
       const d = Number(b.dataset.day), days = n.days.includes(d) ? n.days.filter((x) => x !== d) : [...n.days, d];
       rerender({ days });
-    }));
-    veil.querySelectorAll("[data-forget]").forEach((b) => (b.onclick = async () => {
-      if (!confirm(t("forget_confirm"))) return;
-      try { this._set = await this._call("push_remove", { name: b.dataset.forget }); } catch (_) { this._toast(t("save_failed")); return; }
-      this._notifyScreen(veil, back, n);
     }));
     // the test uses what is on screen, saved or not
     const test = veil.querySelector("[data-test]");
