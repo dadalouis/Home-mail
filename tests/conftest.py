@@ -30,6 +30,9 @@ _stub("homeassistant.config_entries", ConfigEntry=_Any)
 _stub("homeassistant.core", HomeAssistant=_Any, Event=_Any, callback=lambda f: f)
 _stub("homeassistant.helpers")
 _stub("homeassistant.helpers.entity_registry", async_get=lambda hass: None)
+DEVICES = {}  # config entry id -> [device]
+_stub("homeassistant.helpers.device_registry", async_get=lambda hass: None,
+      async_entries_for_config_entry=lambda reg, entry_id: DEVICES.get(entry_id, []))
 ISSUES = {}
 _stub("homeassistant.helpers.issue_registry",
       IssueSeverity=types.SimpleNamespace(WARNING="warning"),
