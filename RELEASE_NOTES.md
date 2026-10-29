@@ -1,3 +1,11 @@
+### Next version (not released yet)
+
+**New**
+- **Version number** at the bottom of Settings, so you can see which version is running.
+
+**Fixed**
+- After an update, browsers sometimes kept the old app files: they are now asked for by version number.
+
 ### Home-mail 0.3.0-beta.1
 
 This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it.

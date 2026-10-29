@@ -1,7 +1,11 @@
 """Constants for Home-mail."""
 
+import json
+from pathlib import Path
+
 DOMAIN = "homemail"
-VERSION = "0.1.0"
+# from manifest.json: shown in the settings, and makes browsers load the new app files after an update
+VERSION = json.loads((Path(__file__).parent / "manifest.json").read_text(encoding="utf-8"))["version"]
 
 CONF_PROVIDER = "provider"
 CONF_IMAP_SERVER = "imap_server"

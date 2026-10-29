@@ -966,6 +966,7 @@ class HomemailApp extends HTMLElement {
             <button class="item" data-folders><span style="width:24px"></span><span class="text"><span class="name">${this.t("folders_app")}<span class="sub2">${esc(this._hiddenLabel())}</span></span>${svg(IC.next, "chev")}</span></button></div>` : ""}
           <div class="gtitle">${this.t("app_title")}</div><div class="group"><div class="item"><input type="text" id="app-url" readonly value="${esc(appUrl)}" style="flex:1;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit;padding:12px 0"><button type="button" class="btn" data-copy>${svg(IC.copy)}${this.t("copy")}</button></div></div>
           <div class="explain">${this.t("app_note")}${appUrl.startsWith("https:") ? "" : " " + this.t("app_note_http")}</div>
+          ${s.version ? `<div class="explain" style="text-align:center;margin-top:28px">Home-mail ${esc(s.version)}</div>` : ""}
         </div></div>`;
       const url = veil.querySelector("#app-url");
       url.onfocus = () => url.select();

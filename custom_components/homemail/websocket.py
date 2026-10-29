@@ -25,7 +25,7 @@ from homeassistant.util.json import load_json
 from . import mail, notify
 from .const import (
     COLORS, DOMAIN, MAX_SENT_PER_HOUR, OPT_COLOR, OPT_NAME, OPT_SENDER, OPT_SENT_FOLDER, OPT_SIGNATURE, OPT_USERS,
-    PROVIDERS, SIGNAL_UPDATE, URL_FILES,
+    PROVIDERS, SIGNAL_UPDATE, URL_FILES, VERSION,
 )
 from .coordinator import account_cfg
 
@@ -108,7 +108,7 @@ async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
         s["default"] = next(iter(accounts), "")
     ncfg = notify.settings_of(all_settings, user.id)
     sent = notify.delivery(hass)
-    out = {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or "", "user_id": user.id,
+    out = {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or "", "user_id": user.id, "version": VERSION,
            "app_urls": _app_urls(hass), "notify": ncfg,
            # where notifications go, with the last result per device (memory only, since the last restart)
            "notify_devices": [{**d, "last": sent.get(f"app:{d['service']}")} for d in notify.app_devices(hass, user.id)],
