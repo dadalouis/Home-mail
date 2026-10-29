@@ -304,6 +304,26 @@ def read_message(cfg: dict, uid: str, mark: bool, folder: str = "INBOX") -> dict
     }
 
 
+def get_attachment(cfg: dict, uid: str, folder: str, index: int) -> tuple[str, str, bytes]:
+    """Attachment number `index` (same order as in read_message) of a message: (name, content type, bytes)."""
+    m = connect(cfg, folder)
+    try:
+        _, res = m.uid("FETCH", str(uid), "(BODY.PEEK[])")
+        raw = next((r[1] for r in res or [] if isinstance(r, tuple)), None)
+    finally:
+        close(m)
+    if raw is None:
+        raise MailError("not_found")
+    n = 0
+    for p in email.message_from_bytes(raw).walk():
+        if p.is_multipart() or not p.get_filename():
+            continue
+        if n == index:
+            return (str(make_header(decode_header(p.get_filename()))), p.get_content_type(), p.get_payload(decode=True) or b"")
+        n += 1
+    raise MailError("not_found")
+
+
 def special_folder(m: imaplib.IMAP4, flag: str) -> str | None:
     """Folder with a SPECIAL-USE flag (\\Trash, \\Sent, \\All, \\Archive)."""
     _, data = m.list()
@@ -545,7 +565,8 @@ QUOTE = {
 
 def send(cfg: dict, sender_name: str, to: list[str], cc: list[str], subject: str, body: str,
          original_uid: str | None, mode: str, sent_folder: str | None, bcc: list[str] | None = None,
-         folder: str = "INBOX", language: str = "en") -> dict[str, Any]:
+         folder: str = "INBOX", language: str = "en",
+         attachments: list[tuple[str, str, bytes]] | None = None) -> dict[str, Any]:
     """Send via SMTP (same login as IMAP). reply/reply_all/forward quote the original (from `folder`).
     sent_folder: None = server keeps a copy itself (Gmail), "AUTO" = folder with \\Sent, else that folder."""
     words = QUOTE.get((language or "en")[:2], QUOTE["en"])
@@ -612,6 +633,10 @@ def send(cfg: dict, sender_name: str, to: list[str], cc: list[str], subject: str
                 main, _, sub = p.get_content_type().partition("/")
                 msg.add_attachment(p.get_payload(decode=True) or b"", maintype=main, subtype=sub or "octet-stream",
                                    filename=str(make_header(decode_header(p.get_filename()))))
+
+    for name, ctype, data in attachments or []:
+        main, _, sub = ctype.partition("/")
+        msg.add_attachment(data, maintype=main or "application", subtype=sub or "octet-stream", filename=name)
 
     s = _smtp(cfg)
     try:

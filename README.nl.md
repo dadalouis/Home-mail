@@ -26,6 +26,7 @@
 - Veilig lezen: HTML wordt opgeschoond en zonder scripts getoond; externe afbeeldingen aan/uit; volgpixels verwijderd
 - Vegen zoals op iOS: archiveren, verwijderen, gelezen/ongelezen; vlag; terug naar inkomend
 - Schrijven, beantwoorden, allen beantwoorden en doorsturen (met bijlagen van het origineel), handtekening en kleur per account
+- Bijlagen: bijlagen van een bericht openen en downloaden, en eigen bestanden toevoegen bij het schrijven (tot 20 MB per bestand, 25 MB per bericht)
 - Adressuggesties uit je inbox en verzonden mail
 - Zoeken (op de server; bij Gmail werkt de Gmail-zoeksyntax)
 - Ingebouwde meldingen op je Companion-app en de web-app op je beginscherm, per gebruiker: kies accounts, afzenders (VIP en gedempt), dagen, stille uren, tekst en geluid

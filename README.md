@@ -27,6 +27,7 @@
 - Read messages safely: HTML is sanitised and shown in a sandbox without scripts; remote images on/off; tracking pixels removed
 - Swipe actions like iOS: archive, delete, read/unread; flag; move back to the inbox
 - Write, reply, reply all and forward (with attachments of the original), per-account signature and colour
+- Attachments: open and download the attachments of a message, and add your own files when writing (up to 20 MB per file, 25 MB per message)
 - Address suggestions from your inbox and sent mail
 - Search (server-side, Gmail search syntax works for Gmail)
 - Built-in notifications on your Companion app and the home-screen web app, per user: choose accounts, senders (VIP and muted), days, quiet hours, text and sound
