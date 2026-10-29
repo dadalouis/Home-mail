@@ -47,7 +47,7 @@ const T = {
     notif_no_devices: "No Companion app is linked to your user.", notif_web_none: "Not turned on yet: open the web app on your phone and tap the notifications button.", notif_web_n: "device(s) registered",
     notif_test: "Send test notification", notif_test_sent: "Test notification sent", notif_test_none: "No device to send to", days: "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
     attach_add: "Add attachment", tap_open: "tap to open", attach_failed: "Attachment failed: {e}", attach_big: "{n} is too big (max 20 MB)", attach_busy: "Wait until the attachments are uploaded.",
-    closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
+    discard_changes: "Discard your changes?", closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
     next: "Next", checking: "Checking…", password: "Password", required: "required", servers: "Servers",
@@ -99,7 +99,7 @@ const T = {
     notif_no_devices: "Er is geen Companion-app aan jouw gebruiker gekoppeld.", notif_web_none: "Nog niet aangezet: open de web-app op je telefoon en tik op de meldingenknop.", notif_web_n: "apparaat/apparaten aangemeld",
     notif_test: "Stuur testmelding", notif_test_sent: "Testmelding verstuurd", notif_test_none: "Geen apparaat om naar te sturen", days: "Ma,Di,Wo,Do,Vr,Za,Zo",
     attach_add: "Bijlage toevoegen", tap_open: "tik om te openen", attach_failed: "Bijlage mislukt: {e}", attach_big: "{n} is te groot (max 20 MB)", attach_busy: "Wacht tot de bijlagen zijn geüpload.",
-    closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
+    discard_changes: "Wijzigingen weggooien?", closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
     next: "Volgende", checking: "Controleren…", password: "Wachtwoord", required: "vereist", servers: "Servers",
@@ -927,13 +927,18 @@ class HomemailApp extends HTMLElement {
     };
     show();
   }
-  _notifyScreen(veil, back) {
-    const s = this._set, n = s.notify, t = (k) => this.t(k);
+  _notifyScreen(veil, back, draft) {
+    // changes are kept in a draft and only saved with the Save button
+    const s = this._set, t = (k) => this.t(k);
+    const saved = JSON.stringify(s.notify);
+    const n = draft || JSON.parse(saved);
     const accs = Object.entries(s.accounts || {});
     const sw = (k, label, on = n[k]) => `<label class="item"><span class="text"><span class="name">${label}</span><input type="checkbox" data-n="${k}"${on ? " checked" : ""}></span></label>`;
-    const rerender = async (patch) => { await this._saveSettings({ notify: patch }); this._notifyScreen(veil, back); };
+    const rerender = (patch) => { Object.assign(n, patch); this._notifyScreen(veil, back, n); };
+    const readText = () => veil.querySelectorAll("textarea[data-n]").forEach((el) => (n[el.dataset.n] = el.value)); // still being typed
+    const dirty = () => { readText(); return JSON.stringify(n) !== saved; };
     veil.innerHTML = `<div class="sheet grey">
-      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${t("back")}</button><b>${t("notifications")}</b><span style="width:80px"></span></div>
+      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${t("back")}</button><b>${t("notifications")}</b><button class="btn" data-save style="width:80px;justify-content:flex-end">${t("save")}</button></div>
       <div class="scroll"><div class="group" style="margin-top:18px">${sw("on", t("notif_on"))}</div>
       <div class="explain">${t("notif_note")}</div>
       ${n.on ? `
@@ -960,22 +965,26 @@ class HomemailApp extends HTMLElement {
       <div class="explain">${(s.notify_devices || []).length ? "" : t("notif_no_devices") + " "}${s.notify_web ? s.notify_web + " " + t("notif_web_n") : t("notif_web_none")}</div>
       <div class="group"><button class="item" data-test><span class="text"><span class="name" style="color:var(--blue)">${t("notif_test")}</span></span></button></div>` : ""}
       </div></div>`;
-    veil.querySelector("[data-back]").onclick = back;
+    veil.querySelector("[data-back]").onclick = () => { if (dirty() && !confirm(t("discard_changes"))) return; back(); };
+    veil.querySelector("[data-save]").onclick = async () => { readText(); await this._saveSettings({ notify: n }); back(); };
     veil.querySelectorAll("[data-n]").forEach((el) => (el.onchange = () => {
       const patch = { [el.dataset.n]: el.type === "checkbox" ? el.checked : el.value };
-      if (el.type === "checkbox" || el.tagName === "SELECT") rerender(patch); else this._saveSettings({ notify: patch });
+      if (el.type === "checkbox" || el.tagName === "SELECT") rerender(patch); else Object.assign(n, patch);
     }));
-    veil.querySelectorAll("[data-accn]").forEach((el) => (el.onchange = () => this._saveSettings({ notify: {
-      accounts_off: [...veil.querySelectorAll("[data-accn]")].filter((x) => !x.checked).map((x) => x.dataset.accn) } })));
-    veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => this._saveSettings({ notify: {
-      devices_off: [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev) } })));
+    veil.querySelectorAll("[data-accn]").forEach((el) => (el.onchange = () => {
+      n.accounts_off = [...veil.querySelectorAll("[data-accn]")].filter((x) => !x.checked).map((x) => x.dataset.accn);
+    }));
+    veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => {
+      n.devices_off = [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev);
+    }));
     veil.querySelectorAll("[data-day]").forEach((b) => (b.onclick = () => {
       const d = Number(b.dataset.day), days = n.days.includes(d) ? n.days.filter((x) => x !== d) : [...n.days, d];
       rerender({ days });
     }));
+    // the test uses what is on screen, saved or not
     const test = veil.querySelector("[data-test]");
     if (test) test.onclick = async () => {
-      try { const r = await this._call("notify_test"); this._toast(t(r.app + r.web ? "notif_test_sent" : "notif_test_none")); }
+      try { const r = await this._call("notify_test", { notify: n }); this._toast(t(r.app + r.web ? "notif_test_sent" : "notif_test_none")); }
       catch (_) { this._toast(t("save_failed")); }
     };
   }

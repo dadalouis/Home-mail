@@ -167,13 +167,13 @@ async def ws_push_register(hass, connection, msg) -> None:
     connection.send_result(msg["id"], {"ok": True})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homemail/notify_test"})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/notify_test", vol.Optional("notify"): dict})
 @websocket_api.async_response
 async def ws_notify_test(hass, connection, msg) -> None:
     """Send a test notification to the devices of the logged-in user."""
     _, all_settings = await _store(hass)
     try:
-        sent = await notify.async_test(hass, connection.user, all_settings)
+        sent = await notify.async_test(hass, connection.user, all_settings, msg.get("notify"))
     except Exception as err:  # noqa: BLE001
         connection.send_error(msg["id"], "notify_error", _err(err))
         return

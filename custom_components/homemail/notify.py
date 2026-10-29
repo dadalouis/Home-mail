@@ -223,10 +223,13 @@ async def async_clear(hass: HomeAssistant, entry: ConfigEntry, uid: str) -> None
             await _call(hass, "html5", "dismiss_message", {"tag": tag}, {"entity_id": to["web"]})
 
 
-async def async_test(hass: HomeAssistant, user, all_settings: dict) -> dict[str, int]:
-    """Test notification to this user's own devices (ignores the filters). Returns how many devices it went to."""
+async def async_test(hass: HomeAssistant, user, all_settings: dict, draft: dict | None = None) -> dict[str, int]:
+    """Test notification to this user's own devices (ignores the filters). `draft` = settings on screen, not saved yet.
+    Returns how many devices it went to."""
     cfg = settings_of(all_settings, user.id)
-    to = targets(hass, user.id, {**cfg, "devices_off": cfg["devices_off"]}, all_settings.get(user.id, {}).get("push") or [])
+    if isinstance(draft, dict):
+        cfg = clean(draft, cfg)
+    to = targets(hass, user.id, cfg, all_settings.get(user.id, {}).get("push") or [])
     app = 0
     for d in to["app"]:
         app += await _call(hass, "notify", d["service"], {
