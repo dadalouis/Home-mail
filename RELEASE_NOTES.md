@@ -1,4 +1,4 @@
-### Beta 2 (0.2.2-beta.2)
+### Home-mail 0.2.2
 
 **New**
 - **New mail at once (IMAP IDLE).** Home-mail keeps one connection open per account and the mail server tells it right away when something changes: new mail, or mail read or deleted in another app. The regular check then runs only every 15 minutes as a safety net, which also means far fewer logins at Gmail and other providers. On by default; turn it off per account in the account options (*Instant new mail*). Needs Home Assistant on Python 3.14 (2026.x) and a mail server with IDLE; otherwise Home-mail keeps checking as before. The account screen in the app shows which one is active.
@@ -13,9 +13,11 @@
 - An account with nobody chosen can be read by **every administrator**, who also get its notifications. The app now warns about this; choose the users in the account screen to keep your mail to yourself.
 
 **Fixed**
-- From beta 1: an offline device (for example a wall tablet without local push) no longer fills the Home Assistant log with errors or holds up your other devices, and notification text no longer shows links.
+- An offline device (for example a wall tablet without local push) no longer fills the Home Assistant log with errors or holds up your other devices, and notification text no longer shows links.
 
 **Under the hood**
 - Automated tests (notification filters, quiet hours, attachments, IMAP IDLE against a test server) run on every change.
 
-This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it. Restart Home Assistant after updating.
+**After updating**
+- Restart Home Assistant.
+- Accounts with nobody chosen show a warning in the app: open the account in Settings and pick who may use it.
