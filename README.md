@@ -27,6 +27,7 @@
 - Read messages safely: HTML is sanitised and shown in a sandbox without scripts; remote images on/off; tracking pixels removed
 - Swipe actions like iOS: archive, delete, read/unread; flag; move back to the inbox
 - Write, reply, reply all and forward (with attachments of the original), per-account signature and colour
+- Attachments: open and download the attachments of a message, and add your own files when writing (up to 20 MB per file, 25 MB per message)
 - Address suggestions from your inbox and sent mail
 - Search (server-side, Gmail search syntax works for Gmail)
 - Built-in notifications on your Companion app and the home-screen web app, per user: choose accounts, senders (VIP and muted), days, quiet hours, text and sound
@@ -133,6 +134,7 @@ Use the **https** address (Home Assistant Cloud, your own domain or a VPN to an 
 - Sending uses SMTP with the same login. For servers that don't keep a copy themselves, Home-mail saves one in the Sent folder.
 - Every account's inbox is checked every 60 seconds (adjustable in the account options) with a single light-weight `STATUS` command.
 - At most 20 messages can be sent per hour, as a safety net.
+- **Gmail and other providers limit how often and how much you can check.** Home-mail opens one short connection per account per check and closes it again, which stays far below the known limits. Google does not publish a safe polling interval, though. If a provider complains about too many logins, raise the interval in the account options (for example to 120 or 300 seconds). Notifications then arrive a bit later.
 
 ## About
 

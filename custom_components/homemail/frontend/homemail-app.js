@@ -46,6 +46,7 @@ const T = {
     notif_show: "What you see", notif_preview: "Show message text", notif_sound: "Sound", notif_where: "Where", notif_app: "Companion app", notif_web: "Web app on home screen",
     notif_no_devices: "No Companion app is linked to your user.", notif_web_none: "Not turned on yet: open the web app on your phone and tap the notifications button.", notif_web_n: "device(s) registered",
     notif_test: "Send test notification", notif_test_sent: "Test notification sent", notif_test_none: "No device to send to", days: "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+    attach_add: "Add attachment", tap_open: "tap to open", attach_failed: "Attachment failed: {e}", attach_big: "{n} is too big (max 20 MB)", attach_busy: "Wait until the attachments are uploaded.",
     closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
@@ -64,7 +65,7 @@ const T = {
     hint_other: "Enter your provider's servers (for example imap.example.com / smtp.example.com).",
     p_gmail: "Gmail", p_icloud: "iCloud", p_outlook: "Outlook, Hotmail and Live", p_other: "Other (own domain)",
     e_unauthorized: "No access", e_not_found: "Message not found", e_no_trash: "No Trash folder found",
-    e_rate_limit: "Limit of 20 messages per hour reached", e_invalid_address: "Invalid email address", e_no_recipient: "No recipient",
+    e_too_big: "Attachments are too big (max 25 MB in total)", e_attachment_missing: "An attachment is missing, add it again", e_rate_limit: "Limit of 20 messages per hour reached", e_invalid_address: "Invalid email address", e_no_recipient: "No recipient",
     e_original_not_found: "Original message not found", e_folder_not_found: "Folder not found",
     e_invalid_auth_imap: "Login failed (IMAP): check address and password.",
     e_invalid_auth_smtp: "Login failed for sending (SMTP): check the password.",
@@ -97,6 +98,7 @@ const T = {
     notif_show: "Wat je ziet", notif_preview: "Tekst van het bericht tonen", notif_sound: "Geluid", notif_where: "Waar", notif_app: "Companion-app", notif_web: "Web-app op beginscherm",
     notif_no_devices: "Er is geen Companion-app aan jouw gebruiker gekoppeld.", notif_web_none: "Nog niet aangezet: open de web-app op je telefoon en tik op de meldingenknop.", notif_web_n: "apparaat/apparaten aangemeld",
     notif_test: "Stuur testmelding", notif_test_sent: "Testmelding verstuurd", notif_test_none: "Geen apparaat om naar te sturen", days: "Ma,Di,Wo,Do,Vr,Za,Zo",
+    attach_add: "Bijlage toevoegen", tap_open: "tik om te openen", attach_failed: "Bijlage mislukt: {e}", attach_big: "{n} is te groot (max 20 MB)", attach_busy: "Wacht tot de bijlagen zijn geüpload.",
     closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
@@ -115,7 +117,7 @@ const T = {
     hint_other: "Vul de servers van je provider in (bijv. imap.provider.nl / smtp.provider.nl).",
     p_gmail: "Gmail", p_icloud: "iCloud", p_outlook: "Outlook, Hotmail en Live", p_other: "Andere (eigen domein)",
     e_unauthorized: "Geen toegang", e_not_found: "Mail niet (meer) gevonden", e_no_trash: "Geen prullenbak-map gevonden",
-    e_rate_limit: "Limiet van 20 mails per uur bereikt", e_invalid_address: "Ongeldig e-mailadres", e_no_recipient: "Geen ontvanger",
+    e_too_big: "Bijlagen zijn te groot (max 25 MB samen)", e_attachment_missing: "Een bijlage ontbreekt, voeg hem opnieuw toe", e_rate_limit: "Limiet van 20 mails per uur bereikt", e_invalid_address: "Ongeldig e-mailadres", e_no_recipient: "Geen ontvanger",
     e_original_not_found: "Originele mail niet gevonden", e_folder_not_found: "Map niet gevonden",
     e_invalid_auth_imap: "Inloggen mislukt (IMAP): controleer adres en wachtwoord.",
     e_invalid_auth_smtp: "Inloggen voor verzenden mislukt (SMTP): controleer het wachtwoord.",
@@ -209,7 +211,11 @@ const CSS = `
 .mhead .adr, .mhead .to, .mhead .dat { font-size:13px; color:var(--grey); margin-top:2px; overflow-wrap:anywhere; }
 .mhead .subject { font-size:19px; font-weight:700; margin-top:8px; }
 .att { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.att span { display:inline-flex; align-items:center; gap:5px; font-size:13px; background:var(--fill); border-radius:8px; padding:4px 8px; } .att .ic { width:14px; height:14px; }
+.att span, .att button { display:inline-flex; align-items:center; gap:5px; font-size:13px; background:var(--fill); border:0; color:inherit; font-family:inherit; border-radius:8px; padding:5px 9px; } .att .ic { width:14px; height:14px; }
+.att button { cursor:pointer; } .att button:disabled { opacity:.6; }
+.attrow { flex-wrap:wrap; } .attrow .chip { display:inline-flex; align-items:center; gap:6px; font-size:13px; background:var(--fill); border-radius:8px; padding:5px 9px; }
+.attrow .chip b { font-weight:400; color:var(--grey); } .attrow .chip .x { border:0; background:transparent; color:var(--grey); font-size:15px; padding:0 0 0 2px; cursor:pointer; }
+.attrow .add { border:0; background:transparent; color:var(--blue); font:inherit; font-size:16px; cursor:pointer; padding:0; }
 iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .empty { flex:1; display:flex; align-items:center; justify-content:center; color:var(--grey); padding:24px; text-align:center; }
 .note { padding:10px 16px; font-size:13px; color:var(--grey); }
@@ -640,12 +646,42 @@ class HomemailApp extends HTMLElement {
     }
     this._renderReader();
   }
+  _size(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " kB"; }
+  // Download an attachment piece by piece over the websocket, then open it (second tap, so the browser allows it).
+  async _attachment(m, index, btn) {
+    if (btn._url) { // already downloaded: open or save it
+      const a = document.createElement("a");
+      a.href = btn._url; a.download = btn._name; a.target = "_blank"; a.rel = "noopener";
+      this._root.append(a); a.click(); a.remove();
+      return;
+    }
+    if (btn.disabled) return;
+    const label = btn.innerHTML;
+    btn.disabled = true;
+    try {
+      const parts = []; let offset = 0, r;
+      do {
+        r = await this._call("attachment", { account: m.account, folder: m.folder || "INBOX", uid: m.uid, index, offset });
+        const bin = atob(r.data), buf = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        parts.push(buf); offset += buf.length;
+        btn.textContent = `${r.name} · ${Math.min(100, Math.round((offset / Math.max(1, r.size)) * 100))}%`;
+      } while (!r.eof);
+      btn._url = URL.createObjectURL(new Blob(parts, { type: r.type }));
+      btn._name = r.name;
+      btn.innerHTML = label.replace(/·.*$/, "") + `· ${this.t("tap_open")}`;
+    } catch (e) {
+      btn.innerHTML = label;
+      this._toast(this.t("attach_failed", { e: this._errText(e) }));
+    }
+    btn.disabled = false;
+  }
   _closeReader() { this._open = null; this._root.getElementById("app").classList.remove("open"); this._renderReader(); }
 
   _renderReader() {
     const el = this._root.getElementById("reader"), m = this._open;
     if (!m) { el.innerHTML = `<div class="empty">${this.t("no_selection")}</div>`; return; }
-    const att = (m.attachments || []).map((b) => `<span>${svg(IC.clip)}${esc(b.name || this.t("attachment"))} · ${Math.max(1, Math.round(b.size / 1024))} kB</span>`).join("");
+    const att = (m.attachments || []).map((b, i) => `<button type="button" data-att="${i}">${svg(IC.clip)}${esc(b.name || this.t("attachment"))} · ${this._size(b.size)}</button>`).join("");
     const ready = !m.loading && !m.error;
     const out = this._view.kind === "junk" || this._view.kind === "trash";
     el.innerHTML = `
@@ -667,6 +703,7 @@ class HomemailApp extends HTMLElement {
     this._edgeSwipe(el, el.querySelector("#edge"), back);
     el.querySelectorAll("[data-a]").forEach((b) => (b.onclick = () => this._toolbar(b.dataset.a)));
     el.querySelector("#reply").onclick = (e) => { e.stopPropagation(); this._replyMenu(el.querySelector(".bar")); };
+    el.querySelectorAll("[data-att]").forEach((b) => (b.onclick = () => this._attachment(m, Number(b.dataset.att), b)));
     const frame = el.querySelector("#frame");
     if (frame) {
       const csp = this._set.images === false ? CSP_OFF : CSP_ON;
@@ -716,6 +753,7 @@ class HomemailApp extends HTMLElement {
         <div class="field"><label>${this.t("cc")}:</label><input id="c-cc" type="email" multiple list="c-known" autocomplete="off" value="${esc(cc.join(", "))}"></div>
         <div class="field"><label>${this.t("from")}:</label><select id="c-from">${accs.map((a) => `<option value="${esc(a)}"${a === account ? " selected" : ""}>${esc(this._set.accounts[a].address || a)}</option>`).join("")}</select></div>
         <div class="field"><label>${this.t("subject")}:</label><input id="c-subj" value="${esc(subject)}"></div>
+        <div class="field attrow" id="c-atts"><button type="button" class="add" id="c-add">${svg(IC.clip)} ${this.t("attach_add")}</button><input type="file" id="c-file" multiple hidden></div>
         <textarea class="body" id="c-body"></textarea>
         <div class="foot" id="c-foot">${m ? (mode === "forward" ? this.t("quote_forward") : this.t("quote_reply")) : ""}${this._set.bcc_me ? " " + this.t("bcc_on") : ""}</div>
         <datalist id="c-known"></datalist>
@@ -741,8 +779,42 @@ class HomemailApp extends HTMLElement {
     };
     setTimeout(() => { (to.length ? body : $("#c-to")).focus(); body.setSelectionRange(0, 0); }, 50);
     const start = body.value;
+    // attachments: sent to Home Assistant piece by piece as soon as they are picked, then referenced when sending
+    const atts = [];
+    const drawAtts = () => {
+      veil.querySelectorAll("#c-atts .chip").forEach((c) => c.remove());
+      atts.forEach((a, i) => $("#c-atts").insertBefore(Object.assign(document.createElement("span"), { className: "chip",
+        innerHTML: `${esc(a.name)} <b>${a.done ? this._size(a.size) : a.error ? "!" : Math.round(a.pct) + "%"}</b><button type="button" class="x" data-rm="${i}">✕</button>` }), $("#c-add")));
+      veil.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = () => {
+        const a = atts.splice(Number(b.dataset.rm), 1)[0]; a.removed = true;
+        this._call("upload_remove", { file: a.id }).catch(() => {}); drawAtts();
+      }));
+    };
+    const upload = async (file) => {
+      const a = { id: Math.random().toString(36).slice(2) + Date.now().toString(36), name: file.name, size: file.size, pct: 0, done: false };
+      if (file.size > 20 * 1024 * 1024) { this._toast(this.t("attach_big", { n: file.name })); return; }
+      atts.push(a); drawAtts();
+      try {
+        const CH = 256 * 1024;
+        for (let o = 0; o < file.size || o === 0; o += CH) {
+          if (a.removed) return;
+          const buf = new Uint8Array(await file.slice(o, o + CH).arrayBuffer());
+          let bin = ""; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+          await this._call("upload", { file: a.id, name: file.name, ctype: file.type || "application/octet-stream", data: btoa(bin), last: o + CH >= file.size });
+          a.pct = Math.min(100, ((o + CH) / Math.max(1, file.size)) * 100); drawAtts();
+        }
+        a.done = true;
+      } catch (e) {
+        a.error = true; atts.splice(atts.indexOf(a), 1);
+        this._toast(this.t("attach_failed", { e: this._errText(e) }));
+      }
+      drawAtts();
+    };
+    $("#c-add").onclick = () => $("#c-file").click();
+    $("#c-file").onchange = (e) => { [...e.target.files].forEach(upload); e.target.value = ""; };
     veil.querySelector("[data-o=cancel]").onclick = () => {
-      if ((body.value !== start || $("#c-to").value !== to.join(", ")) && !confirm(this.t("discard"))) return;
+      if ((body.value !== start || $("#c-to").value !== to.join(", ") || atts.length) && !confirm(this.t("discard"))) return;
+      atts.forEach((a) => { a.removed = true; this._call("upload_remove", { file: a.id }).catch(() => {}); });
       veil.remove();
     };
     veil.querySelector("[data-o=send]").onclick = async (e) => {
@@ -752,6 +824,8 @@ class HomemailApp extends HTMLElement {
         subject: $("#c-subj").value.trim(), body: body.value.replace(/^\n+/, ""), mode, language: this._lang,
       };
       if (!d.to.length) { foot.innerHTML = `<span class="error">${this.t("need_recipient")}</span>`; return; }
+      if (atts.some((a) => !a.done)) { foot.innerHTML = `<span class="error">${this.t("attach_busy")}</span>`; return; }
+      d.attachments = atts.map((a) => a.id);
       if (!d.subject && !confirm(this.t("no_subject_ok"))) return;
       if (m && m.account === d.account) { d.original_uid = m.uid; d.folder = m.folder || "INBOX"; }
       else if (m && mode === "forward") { d.mode = "new"; } // another account cannot fetch the original

@@ -4,6 +4,8 @@ the users chosen in the account's options, or (if none are chosen) every adminis
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import logging
 import re
 import time
@@ -28,6 +30,10 @@ from .coordinator import account_cfg
 
 _LOGGER = logging.getLogger(__name__)
 EMAIL = re.compile(r"[^@\s<>,]+@[^@\s<>,]+\.[^@\s<>,]+")
+CHUNK = 384 * 1024  # bytes per websocket message when downloading or uploading a file
+MAX_FILE = 20 * 1024 * 1024
+MAX_TOTAL = 25 * 1024 * 1024  # all attachments of one message (providers refuse more)
+CTYPE = re.compile(r"^[\w.+-]+/[\w.+-]+$")
 USER_DEFAULTS = {"sender": "", "default": "", "bcc_me": False, "images": True}
 
 
@@ -37,7 +43,7 @@ class Unauthorized(Exception):
 
 def async_register_websocket(hass: HomeAssistant) -> None:
     for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe,
-                    ws_push_register, ws_notify_test):
+                    ws_push_register, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
         websocket_api.async_register_command(hass, handler)
 
 
@@ -320,6 +326,7 @@ def _addresses(x) -> list[str]:
     vol.Optional("mode", default="new"): vol.In(["new", "reply", "reply_all", "forward"]),
     vol.Optional("folder", default="INBOX"): str,
     vol.Optional("language", default="en"): str,
+    vol.Optional("attachments", default=[]): [str],
 })
 @websocket_api.async_response
 async def ws_send(hass, connection, msg) -> None:
@@ -346,11 +353,97 @@ async def ws_send(hass, connection, msg) -> None:
     sent_folder = e.options.get(OPT_SENT_FOLDER) or (None if mail.is_gmail(cfg) else "AUTO")
     bcc = [cfg["email"]] if settings["bcc_me"] else []
     sender = e.options.get(OPT_SENDER) or settings["sender"]  # per account; older per-user setting as fallback
+    uploads = hass.data[DOMAIN].setdefault("uploads", {})
+    atts = []
+    for fid in msg["attachments"]:
+        up = uploads.get((connection.user.id, fid))
+        if not up or not up["done"]:
+            connection.send_error(msg["id"], "invalid", "attachment_missing")
+            return
+        atts.append((up["name"], up["type"], bytes(up["data"])))
     r = await _run(hass, connection, msg, mail.send, cfg, sender, to, cc, msg["subject"], msg["body"],
-                   msg.get("original_uid"), msg["mode"], sent_folder, bcc, msg["folder"], msg["language"])
+                   msg.get("original_uid"), msg["mode"], sent_folder, bcc, msg["folder"], msg["language"], atts)
     if r is not None:
+        for fid in msg["attachments"]:
+            uploads.pop((connection.user.id, fid), None)
         sent.append(now)
         connection.send_result(msg["id"], r)
+
+
+@websocket_api.websocket_command({
+    vol.Required("type"): "homemail/attachment",
+    vol.Required("account"): str,
+    vol.Optional("folder", default="INBOX"): str,
+    vol.Required("uid"): vol.Coerce(str),
+    vol.Required("index"): vol.All(int, vol.Range(min=0, max=500)),
+    vol.Optional("offset", default=0): vol.All(int, vol.Range(min=0)),
+})
+@websocket_api.async_response
+async def ws_attachment(hass, connection, msg) -> None:
+    """One piece (base64) of an attachment; the app asks for the pieces one after the other."""
+    try:
+        e = _account(hass, connection, msg["account"])
+    except Unauthorized:
+        connection.send_error(msg["id"], "unauthorized", "unauthorized")
+        return
+    cache = hass.data[DOMAIN].setdefault("downloads", {})
+    now = time.time()
+    for k in [k for k, v in cache.items() if now - v[0] > 300]:
+        del cache[k]
+    key = (connection.user.id, msg["account"], msg["folder"], msg["uid"], msg["index"])
+    hit = cache.get(key)
+    if hit is None:
+        got = await _run(hass, connection, msg, mail.get_attachment, account_cfg(e), msg["uid"], msg["folder"], msg["index"])
+        if got is None:
+            return
+        hit = cache[key] = (now, *got)
+        for k in sorted(cache, key=lambda k: cache[k][0])[:-3]:  # keep the last three in memory
+            del cache[k]
+    _, name, ctype, data = hit
+    piece = data[msg["offset"]:msg["offset"] + CHUNK]
+    connection.send_result(msg["id"], {"name": name, "type": ctype, "size": len(data),
+                                       "data": base64.b64encode(piece).decode(), "eof": msg["offset"] + len(piece) >= len(data)})
+
+
+@websocket_api.websocket_command({
+    vol.Required("type"): "homemail/upload",
+    vol.Required("file"): vol.All(str, vol.Length(min=1, max=64)),
+    vol.Required("name"): vol.All(str, vol.Length(min=1, max=300)),
+    vol.Optional("ctype", default="application/octet-stream"): str,
+    vol.Required("data"): str,
+    vol.Optional("last", default=False): bool,
+})
+@websocket_api.async_response
+async def ws_upload(hass, connection, msg) -> None:
+    """A file for a message being written, in pieces (base64). It waits in memory until the message is sent."""
+    uploads = hass.data[DOMAIN].setdefault("uploads", {})
+    now = time.time()
+    for k in [k for k, v in uploads.items() if now - v["ts"] > 1800]:
+        del uploads[k]
+    try:
+        piece = base64.b64decode(msg["data"], validate=True)
+    except (binascii.Error, ValueError):
+        connection.send_error(msg["id"], "invalid", "invalid_data")
+        return
+    key = (connection.user.id, msg["file"])
+    up = uploads.setdefault(key, {"name": msg["name"].replace("\\", "/").rsplit("/", 1)[-1][:200] or "file",
+                                  "type": msg["ctype"] if CTYPE.match(msg["ctype"]) else "application/octet-stream",
+                                  "data": bytearray(), "ts": now, "done": False})
+    up["data"] += piece
+    mine = sum(len(v["data"]) for k, v in uploads.items() if k[0] == connection.user.id)
+    if len(up["data"]) > MAX_FILE or mine > MAX_TOTAL:
+        uploads.pop(key, None)
+        connection.send_error(msg["id"], "too_big", "too_big")
+        return
+    up["done"] = bool(msg["last"])
+    connection.send_result(msg["id"], {"size": len(up["data"])})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemail/upload_remove", vol.Required("file"): str})
+@websocket_api.async_response
+async def ws_upload_remove(hass, connection, msg) -> None:
+    hass.data[DOMAIN].setdefault("uploads", {}).pop((connection.user.id, msg["file"]), None)
+    connection.send_result(msg["id"], {"ok": True})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "homemail/contacts"})
