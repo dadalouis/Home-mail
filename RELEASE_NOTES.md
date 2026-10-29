@@ -5,6 +5,7 @@
 - **Notifications screen right after logging in**: one tap links this phone to your user. When a phone no longer gets notifications (for example after Forget, or a new home-screen app), it signs up again by itself.
 - **Per device: which accounts notify**, under Settings → Notifications → *Where*. Web apps get recognisable names ("iPhone").
 - **Copy button** next to the web app address.
+- **How much mail the web app shows**: right after logging in you choose a period (a number of days, weeks, months or years, or all mail); change it later under Settings → *Mail in this app*. The web app then only loads that mail, and its red number only counts unread mail of that period. *Load older mail* at the bottom of a list shows the rest. Nothing is deleted, and the Companion app and the Home Assistant panel keep showing everything.
 
 **Fixed**
 - **Web app notifications that stopped arriving on the iPhone.** Home-mail sent an invisible push to take a notification away whenever a message was read, also for messages that never had a notification. iOS stops delivering to a web app that gets such pushes. Web apps now only get visible notifications, sent with high priority.

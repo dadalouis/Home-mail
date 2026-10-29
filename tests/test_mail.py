@@ -111,3 +111,24 @@ def test_cache_is_bounded(monkeypatch):
     for i in range(5):
         mail.remember(cache, ("A", "INBOX", str(i)), {"uid": str(i)})
     assert list(cache) == [("A", "INBOX", "2"), ("A", "INBOX", "3"), ("A", "INBOX", "4")]
+
+
+def test_imap_since():
+    assert mail.imap_since("2026-10-05") == "5-Oct-2026"
+    assert mail.imap_since("") is None and mail.imap_since("2026-13-01") is None and mail.imap_since("x") is None
+
+
+class SinceImap(ListImap):
+    def uid(self, cmd, *args):
+        if cmd == "SEARCH":
+            self.searched = args
+            return "OK", [b"40098 40099 40100" if "UNSEEN" not in args else b"40100"]
+        return super().uid(cmd, *args)
+
+
+def test_list_and_count_since(monkeypatch):
+    imap = SinceImap(40000)
+    monkeypatch.setattr(mail, "connect", lambda cfg, folder: imap)
+    rows = mail.list_messages("A", {"imap_server": "x"}, 50, None, {}, "INBOX", "2026-10-15")
+    assert imap.searched == (None, "SINCE", "15-Oct-2026") and [r["uid"] for r in rows] == ["40098", "40099", "40100"]
+    assert mail.unseen_since({}, "2026-10-15") == 1 and imap.searched == (None, "UNSEEN", "SINCE", "15-Oct-2026")

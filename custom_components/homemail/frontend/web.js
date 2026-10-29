@@ -16,14 +16,20 @@ const TXT = {
         mfa_sub: "Enter the code from your authenticator app", confirm: "Confirm", back: "Back", own_page: "Log in on the Home Assistant page",
         bad_login: "Wrong username or password", bad_code: "Wrong code, try again", login_err: "Logging in failed", private: "Your mail stays in your own Home Assistant",
         n_title: "Notifications for new mail", n_text: "This {d} will be linked to <b>{u}</b>. Afterwards you choose per account what you want to hear about.",
-        n_on: "Turn on notifications", n_later: "Later", n_foot: "iOS asks for permission once after this", made: "Made by dadalouis" },
+        n_on: "Turn on notifications", n_later: "Later", n_foot: "iOS asks for permission once after this", made: "Made by dadalouis",
+        p_title: "How much mail?", p_text: "This app shows the mail of the last:", p_all: "All mail", p_next: "Continue", p_save: "Save",
+        p_foot: "Nothing is deleted: older mail stays on the server and in your other apps. You can change this later in Settings.",
+        u_d: ["day", "days"], u_w: ["week", "weeks"], u_m: ["month", "months"], u_y: ["year", "years"], last: "last {n}" },
   nl: { reconnect: "Opnieuw verbinden…", offline: "Geen verbinding, opnieuw proberen…", push: "Mailmeldingen via deze app", on: "Meldingen aan", busy: "Bezig…",
         denied: "Meldingen niet toegestaan in de systeeminstellingen", refused: "Home Assistant weigerde de aanmelding", retry: "Opnieuw proberen",
         login_sub: "Log in met je Home Assistant-account", user: "Gebruikersnaam", pass: "Wachtwoord", keep: "Ingelogd blijven", login: "Inloggen",
         mfa_sub: "Vul de code uit je authenticator-app in", confirm: "Bevestigen", back: "Terug", own_page: "Inloggen via de pagina van Home Assistant",
         bad_login: "Verkeerde gebruikersnaam of wachtwoord", bad_code: "Verkeerde code, probeer opnieuw", login_err: "Inloggen mislukt", private: "Je mail blijft in je eigen Home Assistant",
         n_title: "Meldingen bij nieuwe mail", n_text: "Deze {d} wordt gekoppeld aan <b>{u}</b>. Je kiest daarna per account wat je wilt horen.",
-        n_on: "Meldingen aanzetten", n_later: "Later", n_foot: "iOS vraagt hierna één keer om toestemming", made: "Made by dadalouis" },
+        n_on: "Meldingen aanzetten", n_later: "Later", n_foot: "iOS vraagt hierna één keer om toestemming", made: "Made by dadalouis",
+        p_title: "Hoeveel mail?", p_text: "Deze app toont de mail van de laatste:", p_all: "Alle mail", p_next: "Verder", p_save: "Bewaar",
+        p_foot: "Er wordt niets verwijderd: oudere mail blijft op de server en in je andere apps. Je kunt dit later aanpassen in Instellingen.",
+        u_d: ["dag", "dagen"], u_w: ["week", "weken"], u_m: ["maand", "maanden"], u_y: ["jaar", "jaar"], last: "laatste {n}" },
 };
 const esc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 // What kind of device this is, for the name of its notification registration ("Home-mail iPhone 4f2a")
@@ -92,7 +98,7 @@ async function loginScreen() {
         const r = await flow("/" + f.flow_id, body);
         if (r.type === "create_entry") {
           keep(await tokenRequest({ grant_type: "authorization_code", code: r.result }), AUTH.keep ? localStorage : sessionStorage);
-          closeScreen(); connect(); pushSetup().catch(() => {}); return;
+          closeScreen(); connect(); afterLogin(); return;
         }
         if (r.type === "form") { const again = r.step_id === f.step_id; f = r; return ask(again ? t(mfa ? "bad_code" : "bad_login") : ""); }
         return ask(r.reason || t("login_err")); // abort (e.g. too many attempts)
@@ -145,6 +151,64 @@ if (p.get("code")) {
 }
 
 const app = document.querySelector("homemail-app");
+
+// ---------- period: how much mail this web app shows (per device, kept on the phone; HA gets it for the red number) ----------
+const WKEY = "homemail_window";
+const getWindow = () => { try { return JSON.parse(localStorage.getItem(WKEY) || "null"); } catch (_) { return null; } }; // null = not chosen yet
+function sinceDate(w, today = new Date()) { // same rules as notify.since_date in Home Assistant
+  if (!w || w.all || !["d", "w", "m", "y"].includes(w.unit)) return "";
+  const n = Math.max(0, Math.min(Number(w.n) || 0, 36500)), d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (w.unit === "d" || w.unit === "w") d.setDate(d.getDate() - n * (w.unit === "w" ? 7 : 1));
+  else {
+    const day = d.getDate();
+    d.setDate(1); d.setMonth(d.getMonth() - (w.unit === "y" ? 12 * n : n));
+    d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+const windowLabel = (w = getWindow()) => !w || w.all ? t("p_all") : t("last").replace("{n}", `${w.n} ${t("u_" + w.unit)[w.n === 1 ? 0 : 1]}`);
+app.since = sinceDate(getWindow());
+async function syncWindow() { // tell HA, so the red number in notifications counts the same period
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (sub && getWindow()) await connection.sendMessagePromise({ type: "homemail/web_window", endpoint: sub.endpoint, window: getWindow() });
+  } catch (_) {}
+}
+// Choose the period: after the first login, and from Settings. Resolves when saved (true) or closed (false).
+function windowScreen(first) {
+  return new Promise((done) => {
+    const w = getWindow() || { n: 2, unit: "w" };
+    const el = screen(`<form class="hm-c">
+      <div class="hm-bell hm-cal"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+      <div class="hm-word hm-title">${t("p_title")}</div>
+      <div class="hm-sub">${t("p_text")}</div>
+      <div class="hm-period"><input name="n" type="number" inputmode="numeric" min="1" max="999" value="${Number(w.n) || 2}">
+        <div class="hm-seg">${["d", "w", "m", "y"].map((u) => `<label><input type="radio" name="unit" value="${u}"${(w.unit || "w") === u ? " checked" : ""}><span>${t("u_" + u)[1]}</span></label>`).join("")}</div></div>
+      <label class="hm-row">${t("p_all")}<input type="checkbox" name="all"${w.all ? " checked" : ""}></label>
+      <button class="hm-btn">${first ? t("p_next") : t("p_save")}</button>
+      ${first ? "" : `<button type="button" class="hm-btn hm-link" data-back>${t("back")}</button>`}
+      <div class="hm-foot">${t("p_foot")}</div></form>`);
+    const form = el.querySelector("form"), all = form.elements.all;
+    const sync = () => form.querySelector(".hm-period").classList.toggle("off", all.checked);
+    all.onchange = sync; sync();
+    el.querySelector("[data-back]")?.addEventListener("click", () => { closeScreen(); done(false); });
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const nw = all.checked ? { all: true } : { n: Math.max(1, Math.min(999, parseInt(form.elements.n.value, 10) || 1)), unit: form.elements.unit.value };
+      try { localStorage.setItem(WKEY, JSON.stringify(nw)); } catch (_) {}
+      app.setSince(sinceDate(nw));
+      syncWindow();
+      closeScreen(); done(true);
+    };
+  });
+}
+app.mailWindow = { label: () => windowLabel(), edit: () => windowScreen(false) };
+// the period moves with the calendar: a new day, a new first day
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && app.since && sinceDate(getWindow()) !== app.since) app.setSince(sinceDate(getWindow()));
+});
+
 let ws = null, seq = 0, pending = new Map(), delay = 1000;
 const subs = new Set(); // {msg, cb, id}: re-sent after every reconnect
 
@@ -256,6 +320,7 @@ async function register(key) {
   // Home-mail now knows whose device this is
   await connection.sendMessagePromise({ type: "homemail/push_register", name, endpoint: sub.endpoint });
   try { localStorage.setItem("homemail_push2", sub.endpoint); } catch (_) {}
+  await syncWindow();
 }
 
 async function pushOn(btn, key) {
@@ -297,6 +362,11 @@ function pushBarSmall(key) {
   bar.querySelector(".x").onclick = () => bar.remove();
 }
 
+async function afterLogin() {
+  if (!getWindow()) await windowScreen(true);
+  pushSetup().catch(() => {});
+}
+
 let pushBusy = false;
 async function pushSetup() {
   if (pushBusy || !read()?.refresh_token) return; // not logged in yet: runs again after logging in
@@ -324,7 +394,7 @@ async function pushCheck() {
   let later = 0; try { later = Number(localStorage.getItem("homemail_push_later")) || 0; } catch (_) {}
   if (later) pushBarSmall(key); else pushScreen(key);
 }
-pushSetup().catch(() => {});
+if (read()?.refresh_token) afterLogin(); // logged in before: still choose the period once (older versions had none)
 
 // Open a message from a notification: via #mail=<Message-ID> (new window) or a message from the service worker.
 const openFromNotification = (id) => { if (id) app.openByMessageId(id); };

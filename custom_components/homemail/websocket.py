@@ -36,6 +36,7 @@ MAX_FILE = 20 * 1024 * 1024
 MAX_TOTAL = 25 * 1024 * 1024  # all attachments of one message (providers refuse more)
 CTYPE = re.compile(r"^[\w.+-]+/[\w.+-]+$")
 HTML5_REGISTRATIONS = "html5_push_registrations.conf"  # where the html5 integration keeps web push registrations
+SINCE = vol.All(str, vol.Match(r"^(\d{4}-\d{2}-\d{2})?$"))  # a web app's period: only mail from this day on ("" = all)
 USER_DEFAULTS = {"sender": "", "default": "", "bcc_me": False, "images": True}
 
 
@@ -45,7 +46,7 @@ class Unauthorized(Exception):
 
 def async_register_websocket(hass: HomeAssistant) -> None:
     for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe,
-                    ws_push_register, ws_push_check, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
+                    ws_push_register, ws_push_check, ws_web_window, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
         websocket_api.async_register_command(hass, handler)
 
 
@@ -194,6 +195,26 @@ async def ws_push_register(hass, connection, msg) -> None:
     connection.send_result(msg["id"], {"ok": True, "name": name})
 
 
+WINDOW = vol.Schema({vol.Optional("all"): bool, vol.Optional("n"): vol.All(int, vol.Range(min=0, max=36500)),
+                     vol.Optional("unit"): vol.In(["d", "w", "m", "y"])})
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemail/web_window", vol.Required("endpoint"): vol.All(str, vol.Length(max=2000)),
+                                   vol.Required("window"): WINDOW})
+@websocket_api.async_response
+async def ws_web_window(hass, connection, msg) -> None:
+    """The period of mail this web app shows: remembered per registration, so its red number counts the same."""
+    regs = await hass.async_add_executor_job(_html5_registrations, hass)
+    name = next((n for n, r in regs.items() if (r.get("subscription") or {}).get("endpoint") == msg["endpoint"]), None)
+    if name:
+        store, all_settings = await _store(hass)
+        mine = {**USER_DEFAULTS, **all_settings.get(connection.user.id, {})}
+        mine["windows"] = {k: v for k, v in (mine.get("windows") or {}).items() if k in regs} | {name: dict(msg["window"])}
+        all_settings[connection.user.id] = mine
+        store.async_delay_save(lambda: all_settings, 1)
+    connection.send_result(msg["id"], {"ok": bool(name)})
+
+
 @websocket_api.websocket_command({vol.Required("type"): "homemail/push_check", vol.Required("endpoint"): vol.All(str, vol.Length(max=2000))})
 @websocket_api.async_response
 async def ws_push_check(hass, connection, msg) -> None:
@@ -246,6 +267,7 @@ async def ws_notify_test(hass, connection, msg) -> None:
     vol.Optional("limit", default=50): vol.All(int, vol.Range(min=1, max=200)),
     vol.Optional("search"): str,
     vol.Optional("cached", default=False): bool,
+    vol.Optional("since"): SINCE,
 })
 @websocket_api.async_response
 async def ws_list(hass, connection, msg) -> None:
@@ -262,9 +284,11 @@ async def ws_list(hass, connection, msg) -> None:
             return
         folder = msg["folder"] or "INBOX"
     plain_inbox = folder == "INBOX" and not msg.get("search")
+    since = msg.get("since") or None
     if msg["cached"]:
         if plain_inbox and entries and all(e.runtime_data.inbox is not None for e in entries):
-            rows = [dict(r) for e in entries for r in e.runtime_data.inbox][-msg["limit"] * len(entries):]
+            rows = [dict(r) for e in entries for r in e.runtime_data.inbox
+                    if not since or (r.get("date") or "")[:10] >= since][-msg["limit"] * len(entries):]
             connection.send_result(msg["id"], {"messages": rows, "errors": [], "cached": True})
         else:
             connection.send_result(msg["id"], {"messages": None, "errors": [], "cached": True})
@@ -272,19 +296,20 @@ async def ws_list(hass, connection, msg) -> None:
     rows, errors = [], []
     # all accounts at the same time: opening All Inboxes waits for the slowest server, not for the sum
     parts = await asyncio.gather(*(hass.async_add_executor_job(
-        mail.list_messages, e.entry_id, account_cfg(e), msg["limit"], msg.get("search"), e.runtime_data.cache, folder)
+        mail.list_messages, e.entry_id, account_cfg(e), msg["limit"], msg.get("search"), e.runtime_data.cache, folder, since)
         for e in entries), return_exceptions=True)
     for e, part in zip(entries, parts):
         if isinstance(part, Exception):
             errors.append(f"{e.options.get(OPT_NAME) or e.title}: {_err(part)}"[:160])
             continue
-        if plain_inbox and msg["limit"] >= 50:
+        if plain_inbox and msg["limit"] >= 50 and not since:
             e.runtime_data.inbox = [dict(r) for r in part]
         rows += part
     connection.send_result(msg["id"], {"messages": rows, "errors": errors})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homemail/mailboxes", vol.Optional("cached", default=False): bool})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/mailboxes", vol.Optional("cached", default=False): bool,
+                                   vol.Optional("since"): SINCE})
 @websocket_api.async_response
 async def ws_mailboxes(hass, connection, msg) -> None:
     """All folders with counters, per account (accounts in parallel).
@@ -299,8 +324,9 @@ async def ws_mailboxes(hass, connection, msg) -> None:
 
     async def one(k: str, e: ConfigEntry) -> tuple[dict, str | None]:
         try:
-            folders = await hass.async_add_executor_job(mail.mailboxes, account_cfg(e))
-            e.runtime_data.mailboxes = folders
+            folders = await hass.async_add_executor_job(mail.mailboxes, account_cfg(e), msg.get("since") or None)
+            if not msg.get("since"):
+                e.runtime_data.mailboxes = folders
             error = None
         except Exception as err:  # noqa: BLE001
             folders, error = [], f"{e.options.get(OPT_NAME) or e.title}: {_err(err)}"[:160]
@@ -563,21 +589,33 @@ async def ws_add_account(hass, connection, msg) -> None:
     connection.send_error(msg["id"], "invalid", (step.get("errors") or {}).get("base") or step.get("reason") or "failed")
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homemail/subscribe"})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/subscribe", vol.Optional("since"): SINCE})
 @callback
 def ws_subscribe(hass, connection, msg) -> None:
-    """Pushes {account, unread, total} whenever an inbox counter changes (and once right away)."""
+    """Pushes {account, unread, total} whenever an inbox counter changes (and once right away).
+    With `since` (a web app's period) the counters only count unread mail of that period."""
     user = connection.user
+    since = msg.get("since") or None
+    counts: dict[str, int] = {}
 
-    def payload(account: str | None = None) -> dict:
-        unread = {k: (e.runtime_data.data or {}).get("unread", 0) for k, e in _accounts(hass, user).items()}
-        return {"account": account, "unread": unread, "total": sum(unread.values())}
+    async def send(account: str | None = None) -> None:
+        entries = _accounts(hass, user)
+        for k, e in entries.items():
+            if since and (account in (None, k) or k not in counts):
+                try:
+                    counts[k] = await hass.async_add_executor_job(mail.unseen_since, account_cfg(e), since)
+                except Exception:  # noqa: BLE001
+                    counts.setdefault(k, (e.runtime_data.data or {}).get("unread", 0))
+            elif not since:
+                counts[k] = (e.runtime_data.data or {}).get("unread", 0)
+        unread = {k: counts.get(k, 0) for k in entries}
+        connection.send_message(websocket_api.event_message(msg["id"], {"account": account, "unread": unread, "total": sum(unread.values())}))
 
     @callback
     def forward(account: str, _unread: int) -> None:
         if account in _accounts(hass, user):
-            connection.send_message(websocket_api.event_message(msg["id"], payload(account)))
+            hass.async_create_task(send(account))
 
     connection.subscriptions[msg["id"]] = async_dispatcher_connect(hass, SIGNAL_UPDATE, forward)
     connection.send_result(msg["id"])
-    connection.send_message(websocket_api.event_message(msg["id"], payload()))
+    hass.async_create_task(send())

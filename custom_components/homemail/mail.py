@@ -53,6 +53,33 @@ def connect(cfg: dict, folder: str | None = "INBOX", readonly: bool = True) -> i
     return m
 
 
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+SINCE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+
+
+def imap_since(since: str | None) -> str | None:
+    """'2026-10-15' -> '15-Oct-2026' (IMAP SEARCH SINCE; English month names whatever the locale). None: no limit."""
+    g = SINCE.match(since or "")
+    if not g or not 1 <= int(g[2]) <= 12:
+        return None
+    return f"{int(g[3])}-{MONTHS[int(g[2]) - 1]}-{g[1]}"
+
+
+def unseen_since(cfg: dict, since: str | None, folder: str = "INBOX") -> int:
+    """Unread messages in a folder that arrived on or after `since` (the period a web app shows)."""
+    m = connect(cfg, folder)
+    try:
+        return _unseen(m, since)
+    finally:
+        close(m)
+
+
+def _unseen(m: imaplib.IMAP4, since: str | None) -> int:
+    d = imap_since(since)
+    _, data = m.uid("SEARCH", None, *(["UNSEEN", "SINCE", d] if d else ["UNSEEN"]))
+    return len(data[0].split()) if data and data[0] else 0
+
+
 def remember(cache: dict, key: tuple, row: dict) -> None:
     """Keep a message summary in memory, dropping the oldest ones above MAX_CACHE."""
     cache.pop(key, None)
@@ -191,17 +218,22 @@ def summary(account: str, uid: str, raw: bytes, size: int = 0) -> dict[str, Any]
     }
 
 
-def list_messages(account: str, cfg: dict, limit: int, search: str | None, cache: dict, folder: str = "INBOX") -> list[dict]:
-    """Newest `limit` messages of a folder. Flags are always fresh; headers/previews are cached per UID."""
+def list_messages(account: str, cfg: dict, limit: int, search: str | None, cache: dict, folder: str = "INBOX",
+                  since: str | None = None) -> list[dict]:
+    """Newest `limit` messages of a folder (with `since`: only those that arrived on or after that day).
+    Flags are always fresh; headers/previews are cached per UID."""
     m = connect(cfg, folder)
+    d = imap_since(since)
     try:
-        if search:
-            s = search.replace('"', "")
-            if is_gmail(cfg):
-                _, data = m.uid("SEARCH", "X-GM-RAW", q(s))
-            else:
+        if search or d:
+            s = (search or "").replace('"', "")
+            if s and is_gmail(cfg):
+                _, data = m.uid("SEARCH", "X-GM-RAW", q(s), *(["SINCE", d] if d else []))
+            elif s:
                 m.literal = s.encode("utf-8")
-                _, data = m.uid("SEARCH", "CHARSET", "UTF-8", "TEXT")
+                _, data = m.uid("SEARCH", "CHARSET", "UTF-8", *(["SINCE", d] if d else []), "TEXT")
+            else:
+                _, data = m.uid("SEARCH", None, "SINCE", d)
             uids = (data[0].split() if data and data[0] else [])[-int(limit):]
             if not uids:
                 return []
@@ -417,8 +449,9 @@ NAMES = {
 ORDER = ["inbox", "drafts", "sent", "junk", "trash", "archive", "all"]
 
 
-def mailboxes(cfg: dict) -> list[dict[str, Any]]:
-    """All folders with counters, in iOS order: Inbox, Drafts, Sent, Junk, Trash, Archive, All, then custom folders."""
+def mailboxes(cfg: dict, since: str | None = None) -> list[dict[str, Any]]:
+    """All folders with counters, in iOS order: Inbox, Drafts, Sent, Junk, Trash, Archive, All, then custom folders.
+    With `since` the inbox counts only unread mail of that period (like the web app shows it)."""
     m = connect(cfg, None)
     try:
         _, data = m.list()
@@ -445,6 +478,12 @@ def mailboxes(cfg: dict) -> list[dict[str, Any]]:
                 unread = int((re.search(r"UNSEEN (\d+)", t) or [0, 0])[1])
             except Exception:  # noqa: BLE001
                 pass
+            if kind == "inbox" and imap_since(since):
+                try:
+                    m.select(q(raw), readonly=True)
+                    unread = _unseen(m, since)
+                except Exception:  # noqa: BLE001
+                    pass
             out.append({"folder": raw, "name": short, "path": name, "kind": kind or "custom", "total": total, "unread": unread})
         out.sort(key=lambda x: (ORDER.index(x["kind"]) if x["kind"] in ORDER else 99, x["path"].lower()))
         return out

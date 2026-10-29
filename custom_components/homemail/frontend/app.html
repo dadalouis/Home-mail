@@ -42,6 +42,15 @@
   .hm-row input:checked { background:#34c759; }
   .hm-row input:checked::after { left:22px; }
   .hm-code { width:100%; margin-top:28px; text-align:center; font-size:30px; letter-spacing:10px; border:0; border-radius:14px; padding:14px; outline:2px solid #0a84ff; }
+  .hm-period { width:100%; margin-top:24px; display:flex; flex-direction:column; gap:10px; transition:opacity .2s; }
+  .hm-period.off { opacity:.35; pointer-events:none; }
+  .hm-period > input { width:100%; box-sizing:border-box; text-align:center; font:600 34px -apple-system,system-ui,sans-serif; border:0; border-radius:14px; padding:12px; background:#fff; color:inherit; outline:0; }
+  .hm-seg { display:flex; background:#e3e3e8; border-radius:10px; padding:2px; }
+  .hm-seg label { flex:1; }
+  .hm-seg input { display:none; }
+  .hm-seg span { display:block; text-align:center; padding:8px 0; border-radius:8px; font-size:14px; font-weight:500; }
+  .hm-seg input:checked + span { background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.15); }
+  .hm-bell.hm-cal { background:linear-gradient(#20c997,#0a84ff); box-shadow:0 8px 24px rgba(10,132,255,.25); }
   .hm-err { color:#ff3b30; font-size:14px; min-height:20px; margin-top:12px; text-align:center; }
   .hm-btn { width:100%; margin-top:8px; border:0; background:#0a84ff; color:#fff; font:600 17px -apple-system,system-ui,sans-serif; padding:15px; border-radius:14px; }
   .hm-btn:disabled { opacity:.6; }
@@ -56,7 +65,8 @@
   .hm-list span { width:28px; height:28px; border-radius:8px; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; }
   @media (prefers-color-scheme: dark) {
     #hm-screen { background:#000; color:#fff; }
-    .hm-card, .hm-list, .hm-code { background:#1c1c1e; color:#fff; }
+    .hm-card, .hm-list, .hm-code, .hm-period > input { background:#1c1c1e; color:#fff; }
+    .hm-seg { background:#1c1c1e; } .hm-seg input:checked + span { background:#636366; }
     .hm-card label, .hm-list div { border-color:#38383a; }
     .hm-sub b { color:#fff; }
     .hm-row { color:#d1d1d6; }
