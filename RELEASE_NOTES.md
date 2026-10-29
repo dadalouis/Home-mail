@@ -1,4 +1,6 @@
-### Next version (not released yet)
+### Home-mail 0.3.0-beta.1
+
+This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it.
 
 **New**
 - **Own login screen** in the web app, in the Home-mail style, with two-step verification. The Home Assistant login page is still one tap away.
@@ -11,6 +13,7 @@
 **Fixed**
 - **Web app notifications that stopped arriving on the iPhone.** Home-mail sent an invisible push to take a notification away whenever a message was read, also for messages that never had a notification. iOS stops delivering to a web app that gets such pushes. Web apps now only get visible notifications, sent with high priority.
 - **A new web app registration got no notifications** until Home Assistant restarted. Home-mail now reloads the HTML5 integration after a registration, and signs up with a fresh subscription instead of reusing an old (possibly dead) one.
+- **No notifications on a Companion device whose name changed.** When a phone was renamed (for example "Anna's iPhone" became "iPhone Anna"), Home-mail looked for the old name, did not find it and skipped the phone without a word. It now uses the name the device has in Home Assistant, so the notification arrives. The device also shows up under Settings → Notifications → *Where* again.
 - "Last sent" now says *sent*: Home Assistant handed the notification to Apple or Google; whether it is shown is up to the device.
 
 **Faster**
@@ -18,7 +21,6 @@
 - Only the newest messages of a folder are asked for, not the list of every message in it (big Gmail inboxes).
 - Message summaries kept in memory have a limit.
 
-- **No notifications on a Companion device whose name changed.** When a phone was renamed (for example "Anna's iPhone" became "iPhone Aaurence"), Home-mail looked for the old name, did not find it and skipped the phone without a word. It now uses the name the device has in Home Assistant, so the notification arrives. The device also shows up under Settings → Notifications → *Where* again.
-
 **After updating**
 - Restart Home Assistant.
+- Web app on your phone: open it, log in on the new screen, choose how much mail it shows and tap **Turn on notifications**. A web app that no longer got notifications signs up again by itself.
