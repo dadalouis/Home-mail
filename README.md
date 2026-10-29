@@ -30,6 +30,7 @@
 - Attachments: open and download the attachments of a message, and add your own files when writing (up to 20 MB per file, 25 MB per message)
 - Address suggestions from your inbox and sent mail
 - Search (server-side, Gmail search syntax works for Gmail)
+- New mail at once with IMAP IDLE (no waiting for the next check)
 - Built-in notifications on your Companion app and the home-screen web app, per user: choose accounts, senders (VIP and muted), days, quiet hours, text and sound
 - A sensor per account with the number of unread messages, and a `homemail_new_mail` event
 - Per account you choose which Home Assistant users may use it (default: administrators only)
@@ -86,7 +87,9 @@ Everyone sets this up for themselves under **Settings → Notifications** in Hom
 | Days and quiet hours | Only on the days you pick, and silent between two times (for example 22:00 to 07:00) |
 | Message text, sound | Show the text or only the subject; with or without sound |
 | Where | Companion app and/or web app, and per Companion device |
-| Test notification | Sends a test to your own devices |
+| Test notification | Sends a test to your own devices, with the settings on screen (saved or not) |
+
+Changes are saved with the **Save** button. Under *Where* you see every Companion app logged in with your Home Assistant user and every web app you turned on, each with the time the last notification went through or why it failed. Web apps you no longer use can be forgotten there. Tapping a notification opens that message, and the red number on the app icon goes down again when you read mail, here or in another app (iPhone, iPad and Mac).
 
 Messages that arrive during quiet hours or on a day that is off do not notify afterwards; the mail itself is just there when you open the app.
 
@@ -102,6 +105,7 @@ Every person in your household can have their own mailboxes, all on the same Hom
 4. Everyone opens the same app address and logs in with their own Home Assistant account. You only see the mailboxes you were given access to; other mailboxes do not appear at all.
 
 Good to know:
+- An account you add from the Home-mail app is yours alone until you share it. An account added under Settings → Devices & services starts with nobody chosen, which means **every administrator** can read it and gets its notifications; the app then shows a warning, and administrators can pick the users right in the account screen of the app.
 - An account can be shared with several users, and a user can have several accounts.
 - Once you pick users for an account, only those users get access. Administrators are not added automatically, so include yourself if you want to use it too.
 - Personal settings (default account, blind copy to myself, load images) are stored per user. The signature and colour belong to the account. New messages get a default closing with the name of the logged-in Home Assistant user, until you set your own signature.
@@ -132,9 +136,9 @@ Use the **https** address (Home Assistant Cloud, your own domain or a VPN to an 
 - Messages are fetched on demand straight from the IMAP server; nothing is written to Home Assistant states or the database except the unread counter.
 - The app talks to Home Assistant over the websocket API (`homemail/*` commands). Every command checks whether the logged-in Home Assistant user may use that account.
 - Sending uses SMTP with the same login. For servers that don't keep a copy themselves, Home-mail saves one in the Sent folder.
-- Every account's inbox is checked every 60 seconds (adjustable in the account options) with a single light-weight `STATUS` command.
+- **New mail at once (IMAP IDLE).** Per account Home-mail keeps one connection open, and the mail server reports new mail (and mail read or deleted elsewhere) right away. While that works, the regular check runs only every 15 minutes as a safety net. Needs Python 3.14 (Home Assistant 2026.x) and a server with IDLE (Gmail, iCloud, Outlook and most others have it); otherwise, or with *Instant new mail* turned off in the account options, every inbox is checked every 60 seconds (adjustable) with a single light-weight `STATUS` command. The account screen in the app shows which of the two is active.
 - At most 20 messages can be sent per hour, as a safety net.
-- **Gmail and other providers limit how often and how much you can check.** Home-mail opens one short connection per account per check and closes it again, which stays far below the known limits. Google does not publish a safe polling interval, though. If a provider complains about too many logins, raise the interval in the account options (for example to 120 or 300 seconds). Notifications then arrive a bit later.
+- **Gmail and other providers limit how often and how much you can check.** With *Instant new mail* (IMAP IDLE) on, Home-mail keeps one connection open and checks only every 15 minutes, so it logs in far less often. Without it, Home-mail opens one short connection per account per check and closes it again, which stays far below the known limits. Google does not publish a safe polling interval, though. If a provider complains about too many logins, raise the interval in the account options (for example to 120 or 300 seconds).
 
 ## About
 

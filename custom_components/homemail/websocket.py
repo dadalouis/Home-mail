@@ -43,7 +43,7 @@ class Unauthorized(Exception):
 
 def async_register_websocket(hass: HomeAssistant) -> None:
     for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe,
-                    ws_push_register, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
+                    ws_push_register, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
         websocket_api.async_register_command(hass, handler)
 
 
@@ -97,14 +97,26 @@ async def _settings(hass: HomeAssistant, user: User) -> dict[str, Any]:
         accounts[k] = {"name": o.get(OPT_NAME) or e.title, "sender": o.get(OPT_SENDER) or s["sender"],
                        "color": o.get(OPT_COLOR) or COLORS[i % len(COLORS)],
                        "signature": o.get(OPT_SIGNATURE, ""), "address": e.data["email"],
-                       "unread": (e.runtime_data.data or {}).get("unread", 0)}
+                       "unread": (e.runtime_data.data or {}).get("unread", 0),
+                       "users": list(o.get(OPT_USERS) or []),  # empty = every administrator
+                       "push": e.runtime_data.idle.state if e.runtime_data.idle else "off",
+                       "interval": int(e.runtime_data.update_interval.total_seconds()) if e.runtime_data.update_interval else 0}
     if s["default"] not in accounts:
         s["default"] = next(iter(accounts), "")
     ncfg = notify.settings_of(all_settings, user.id)
-    return {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or "",
-            "app_urls": _app_urls(hass), "notify": ncfg,
-            "notify_devices": [d["name"] for d in notify.app_devices(hass, user.id)],
-            "notify_web": len(notify.web_entities(hass, s.get("push") or []))}
+    sent = notify.delivery(hass)
+    out = {**s, "accounts": accounts, "is_admin": user.is_admin, "user_name": user.name or "", "user_id": user.id,
+           "app_urls": _app_urls(hass), "notify": ncfg,
+           # where notifications go, with the last result per device (memory only, since the last restart)
+           "notify_devices": [{**d, "last": sent.get(f"app:{d['service']}")} for d in notify.app_devices(hass, user.id)],
+           "notify_web_devices": [{**d, "last": sent.get(f"web:{d['entity_id']}")}
+                                  for d in notify.web_devices(hass, s.get("push") or [])],
+           "notify_web_names": list(s.get("push") or [])}
+    out.pop("push", None)
+    if user.is_admin:  # who may use which account is set by administrators
+        out["ha_users"] = [{"id": u.id, "name": u.name or u.id} for u in await hass.auth.async_get_users()
+                           if not u.system_generated and u.is_active]
+    return out
 
 
 def _err(err: Exception) -> str:
@@ -150,6 +162,9 @@ async def ws_settings(hass, connection, msg) -> None:
             for k, opt in (("name", OPT_NAME), ("sender", OPT_SENDER), ("color", OPT_COLOR), ("signature", OPT_SIGNATURE)):
                 if isinstance(w.get(k), str):
                     opts[opt] = w[k][:2000]
+            if user.is_admin and isinstance(w.get("users"), list):
+                known = {u.id for u in await hass.auth.async_get_users()}
+                opts[OPT_USERS] = [x for x in w["users"] if isinstance(x, str) and x in known]
             # options are applied live by the app; no reload needed
             hass.config_entries.async_update_entry(entry, options=opts)
     connection.send_result(msg["id"], await _settings(hass, user))
@@ -167,13 +182,25 @@ async def ws_push_register(hass, connection, msg) -> None:
     connection.send_result(msg["id"], {"ok": True})
 
 
-@websocket_api.websocket_command({vol.Required("type"): "homemail/notify_test"})
+@websocket_api.websocket_command({vol.Required("type"): "homemail/push_remove", vol.Required("name"): str})
+@websocket_api.async_response
+async def ws_push_remove(hass, connection, msg) -> None:
+    """Stop sending web push to one of your web app registrations (an old phone, a removed home-screen app)."""
+    store, all_settings = await _store(hass)
+    mine = all_settings.get(connection.user.id, {})
+    mine["push"] = [n for n in (mine.get("push") or []) if n != msg["name"]]
+    all_settings[connection.user.id] = mine
+    store.async_delay_save(lambda: all_settings, 1)
+    connection.send_result(msg["id"], await _settings(hass, connection.user))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemail/notify_test", vol.Optional("notify"): dict})
 @websocket_api.async_response
 async def ws_notify_test(hass, connection, msg) -> None:
     """Send a test notification to the devices of the logged-in user."""
     _, all_settings = await _store(hass)
     try:
-        sent = await notify.async_test(hass, connection.user, all_settings)
+        sent = await notify.async_test(hass, connection.user, all_settings, msg.get("notify"))
     except Exception as err:  # noqa: BLE001
         connection.send_error(msg["id"], "notify_error", _err(err))
         return
@@ -493,7 +520,10 @@ async def ws_add_account(hass, connection, msg) -> None:
         connection.send_error(msg["id"], "invalid", str(err))
         return
     if step["type"] == "create_entry":
-        connection.send_result(msg["id"], {"ok": True, "account": step["result"].entry_id})
+        entry = step["result"]
+        # whoever adds the account owns it: only they may use it until they share it
+        hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_USERS: [connection.user.id]})
+        connection.send_result(msg["id"], {"ok": True, "account": entry.entry_id})
         return
     if step["type"] == "form":
         flow.async_abort(step["flow_id"])

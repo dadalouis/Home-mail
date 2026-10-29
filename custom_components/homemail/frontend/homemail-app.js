@@ -47,7 +47,16 @@ const T = {
     notif_no_devices: "No Companion app is linked to your user.", notif_web_none: "Not turned on yet: open the web app on your phone and tap the notifications button.", notif_web_n: "device(s) registered",
     notif_test: "Send test notification", notif_test_sent: "Test notification sent", notif_test_none: "No device to send to", days: "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
     attach_add: "Add attachment", tap_open: "tap to open", attach_failed: "Attachment failed: {e}", attach_big: "{n} is too big (max 20 MB)", attach_busy: "Wait until the attachments are uploaded.",
-    closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
+    discard_changes: "Discard your changes?", all_admins: "all administrators", new_mail: "New mail", push_on: "Instant (IMAP IDLE)", push_every: "Checked every {n} min",
+    push_on_note: "The mail server tells Home-mail at once about new mail, and about mail read or deleted in another app. A regular check every 15 minutes is the safety net.",
+    push_off_note: "Instant new mail (IMAP IDLE) is off for this account. Turn it on in the account options in Home Assistant.",
+    push_unsupported: "This mail server or this Home Assistant (Python 3.14 needed) does not support instant new mail, so Home-mail checks regularly.",
+    push_error: "Instant new mail lost its connection; Home-mail retries by itself and checks regularly meanwhile.",
+    access: "Who may use this account", you: "you", access_note: "Only these users see this account and get notifications for it.",
+    access_all_admins: "Nobody chosen: every administrator can read this account and gets its notifications. Choose who may use it.",
+    access_lose: "You are not in the list, so you will no longer see this account. Continue?",
+    notif_devices_note: "The Companion apps logged in with your Home Assistant user. Below each one: when the last notification went through.",
+    forget: "Forget", forget_confirm: "Stop sending notifications to this web app?", last_ok: "last sent {t}", last_fail: "failed {t}: {e}", closing: "Kind regards,", signature: "Signature", signature_note: "The closing (for example 'Kind regards, Alex') added below new messages and replies from this account.",
     description: "Description", description_ph: "e.g. Work", your_name: "Your name",
     account_note: "Name: your name as recipients see it. Description: how this account is called in the app.",
     next: "Next", checking: "Checking…", password: "Password", required: "required", servers: "Servers",
@@ -99,7 +108,16 @@ const T = {
     notif_no_devices: "Er is geen Companion-app aan jouw gebruiker gekoppeld.", notif_web_none: "Nog niet aangezet: open de web-app op je telefoon en tik op de meldingenknop.", notif_web_n: "apparaat/apparaten aangemeld",
     notif_test: "Stuur testmelding", notif_test_sent: "Testmelding verstuurd", notif_test_none: "Geen apparaat om naar te sturen", days: "Ma,Di,Wo,Do,Vr,Za,Zo",
     attach_add: "Bijlage toevoegen", tap_open: "tik om te openen", attach_failed: "Bijlage mislukt: {e}", attach_big: "{n} is te groot (max 20 MB)", attach_busy: "Wacht tot de bijlagen zijn geüpload.",
-    closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
+    discard_changes: "Wijzigingen weggooien?", all_admins: "alle beheerders", new_mail: "Nieuwe mail", push_on: "Direct (IMAP IDLE)", push_every: "Elke {n} min gecontroleerd",
+    push_on_note: "De mailserver meldt nieuwe mail meteen aan Home-mail, net als mail die in een andere app gelezen of verwijderd is. Een gewone controle elke 15 minuten is het vangnet.",
+    push_off_note: "Nieuwe mail direct (IMAP IDLE) staat uit voor dit account. Zet het aan in de accountopties in Home Assistant.",
+    push_unsupported: "Deze mailserver of deze Home Assistant (Python 3.14 nodig) ondersteunt geen directe nieuwe mail, dus Home-mail controleert regelmatig.",
+    push_error: "Directe nieuwe mail is de verbinding kwijt; Home-mail probeert het zelf opnieuw en controleert intussen regelmatig.",
+    access: "Wie mag dit account gebruiken", you: "jij", access_note: "Alleen deze gebruikers zien dit account en krijgen er meldingen van.",
+    access_all_admins: "Niemand gekozen: alle beheerders kunnen dit account lezen en krijgen de meldingen. Kies wie het mag gebruiken.",
+    access_lose: "Je staat zelf niet in de lijst, dus je ziet dit account dan niet meer. Doorgaan?",
+    notif_devices_note: "De Companion-apps die met jouw Home Assistant-gebruiker zijn ingelogd. Onder elk apparaat: wanneer de laatste melding aankwam.",
+    forget: "Vergeet", forget_confirm: "Geen meldingen meer naar deze web-app sturen?", last_ok: "laatst verstuurd {t}", last_fail: "mislukt {t}: {e}", closing: "Vriendelijke groeten,", signature: "Handtekening", signature_note: "De afsluiting (bijv. 'Vriendelijke groet, Sanne') die automatisch onder nieuwe berichten en antwoorden vanaf dit account komt.",
     description: "Beschrijving", description_ph: "bijv. Werk", your_name: "Je naam",
     account_note: "Naam: je naam zoals ontvangers die zien. Beschrijving: hoe dit account in de app heet.",
     next: "Volgende", checking: "Controleren…", password: "Wachtwoord", required: "vereist", servers: "Servers",
@@ -241,6 +259,7 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item input[type=time] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; }
 .dayb { border:0; border-radius:16px; padding:6px 11px; background:#e9e9eb; color:inherit; font:inherit; font-size:15px; cursor:pointer; }
 .dayb.on { background:var(--blue); color:#fff; }
+.warn { color:#ff9500; }
 .fab { position:absolute; right:18px; bottom:max(22px, env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; border:0; background:var(--card); color:var(--primary-text-color, #000); box-shadow:0 4px 18px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:4; }
 .fab .ic { width:26px; height:26px; }
 .swatches { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; padding:8px 0; }
@@ -290,6 +309,16 @@ class HomemailApp extends HTMLElement {
     if (!this._built) this._build();
     if (first || h.connection !== this._conn) this._subscribe();
     this._syncMenu();
+    this._deepLink();
+  }
+  // A tapped Companion app notification opens /homemail?mail=<Message-ID>: open that message.
+  _deepLink() {
+    if (!this.hasAttribute("panel")) return;
+    const id = new URLSearchParams(location.search).get("mail");
+    if (!id || id === this._linked) return;
+    this._linked = id;
+    history.replaceState(history.state, "", location.pathname);
+    this.openByMessageId(id);
   }
   static get observedAttributes() { return ["narrow"]; }
   attributeChangedCallback() { this._syncMenu(); }
@@ -902,7 +931,7 @@ class HomemailApp extends HTMLElement {
       veil.innerHTML = `<div class="sheet grey">
         <div class="sbar"><span style="width:80px"></span><b>${this.t("settings")}</b><button class="btn" data-x style="width:80px;justify-content:flex-end">${this.t("done")}</button></div>
         <div class="scroll"><div class="gtitle" style="margin-top:18px">${this.t("accounts")}</div><div class="group">
-          ${accs.map((a) => `<button class="item" data-acc="${esc(a)}"><span class="acc" style="background:${esc(s.accounts[a].color)};width:12px;height:12px;margin:0 6px"></span><span class="text"><span class="name">${esc(s.accounts[a].name)}<span class="sub2">${esc(s.accounts[a].address || "")}</span></span>${svg(IC.next, "chev")}</span></button>`).join("")}
+          ${accs.map((a) => `<button class="item" data-acc="${esc(a)}"><span class="acc" style="background:${esc(s.accounts[a].color)};width:12px;height:12px;margin:0 6px"></span><span class="text"><span class="name">${esc(s.accounts[a].name)}<span class="sub2">${esc(s.accounts[a].address || "")}${s.is_admin && !(s.accounts[a].users || []).length ? ` · <span class="warn">${this.t("all_admins")}</span>` : ""}</span></span>${svg(IC.next, "chev")}</span></button>`).join("")}
           <button class="item" data-add><span style="width:24px"></span><span class="text"><span class="name">${this.t("add_account")}</span>${svg(IC.next, "chev")}</span></button></div>
           <div class="group"><button class="item" data-notif><span style="width:24px"></span><span class="text"><span class="name">${this.t("notifications")}</span>${svg(IC.next, "chev")}</span></button></div>
           <div class="gtitle">${this.t("composing")}</div><div class="group">
@@ -927,13 +956,18 @@ class HomemailApp extends HTMLElement {
     };
     show();
   }
-  _notifyScreen(veil, back) {
-    const s = this._set, n = s.notify, t = (k) => this.t(k);
+  _notifyScreen(veil, back, draft) {
+    // changes are kept in a draft and only saved with the Save button
+    const s = this._set, t = (k) => this.t(k);
+    const saved = JSON.stringify(s.notify);
+    const n = draft || JSON.parse(saved);
     const accs = Object.entries(s.accounts || {});
     const sw = (k, label, on = n[k]) => `<label class="item"><span class="text"><span class="name">${label}</span><input type="checkbox" data-n="${k}"${on ? " checked" : ""}></span></label>`;
-    const rerender = async (patch) => { await this._saveSettings({ notify: patch }); this._notifyScreen(veil, back); };
+    const rerender = (patch) => { Object.assign(n, patch); this._notifyScreen(veil, back, n); };
+    const readText = () => veil.querySelectorAll("textarea[data-n]").forEach((el) => (n[el.dataset.n] = el.value)); // still being typed
+    const dirty = () => { readText(); return JSON.stringify(n) !== saved; };
     veil.innerHTML = `<div class="sheet grey">
-      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${t("back")}</button><b>${t("notifications")}</b><span style="width:80px"></span></div>
+      <div class="sbar"><button class="btn" data-back>${svg(IC.back)}${t("back")}</button><b>${t("notifications")}</b><button class="btn" data-save style="width:80px;justify-content:flex-end">${t("save")}</button></div>
       <div class="scroll"><div class="group" style="margin-top:18px">${sw("on", t("notif_on"))}</div>
       <div class="explain">${t("notif_note")}</div>
       ${n.on ? `
@@ -954,30 +988,49 @@ class HomemailApp extends HTMLElement {
       <div class="gtitle">${t("notif_show")}</div><div class="group">${sw("preview", t("notif_preview"))}${sw("sound", t("notif_sound"))}</div>
       <div class="gtitle">${t("notif_where")}</div><div class="group">
         ${sw("app", t("notif_app"))}
-        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d)}</span><input type="checkbox" data-dev="${esc(d)}"${n.devices_off.includes(d) ? "" : " checked"}></span></label>`).join("") : ""}
+        ${n.app ? (s.notify_devices || []).map((d) => `<label class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${[d.os, this._lastSent(d.last)].filter(Boolean).map(esc).join(" · ")}</span></span><input type="checkbox" data-dev="${esc(d.name)}"${n.devices_off.includes(d.name) ? "" : " checked"}></span></label>`).join("") : ""}
         ${sw("web", t("notif_web"))}
+        ${n.web ? (s.notify_web_devices || []).map((d) => `<div class="item"><span style="width:24px"></span><span class="text"><span class="name">${esc(d.name)}<span class="sub2">${esc(this._lastSent(d.last) || d.entity_id)}</span></span><button type="button" class="btn" data-forget="${esc(d.name)}">${t("forget")}</button></span></div>`).join("") : ""}
       </div>
-      <div class="explain">${(s.notify_devices || []).length ? "" : t("notif_no_devices") + " "}${s.notify_web ? s.notify_web + " " + t("notif_web_n") : t("notif_web_none")}</div>
+      <div class="explain">${(s.notify_devices || []).length ? t("notif_devices_note") : t("notif_no_devices")} ${(s.notify_web_devices || []).length ? "" : t("notif_web_none")}</div>
       <div class="group"><button class="item" data-test><span class="text"><span class="name" style="color:var(--blue)">${t("notif_test")}</span></span></button></div>` : ""}
       </div></div>`;
-    veil.querySelector("[data-back]").onclick = back;
+    veil.querySelector("[data-back]").onclick = () => { if (dirty() && !confirm(t("discard_changes"))) return; back(); };
+    veil.querySelector("[data-save]").onclick = async () => { readText(); await this._saveSettings({ notify: n }); back(); };
     veil.querySelectorAll("[data-n]").forEach((el) => (el.onchange = () => {
       const patch = { [el.dataset.n]: el.type === "checkbox" ? el.checked : el.value };
-      if (el.type === "checkbox" || el.tagName === "SELECT") rerender(patch); else this._saveSettings({ notify: patch });
+      if (el.type === "checkbox" || el.tagName === "SELECT") rerender(patch); else Object.assign(n, patch);
     }));
-    veil.querySelectorAll("[data-accn]").forEach((el) => (el.onchange = () => this._saveSettings({ notify: {
-      accounts_off: [...veil.querySelectorAll("[data-accn]")].filter((x) => !x.checked).map((x) => x.dataset.accn) } })));
-    veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => this._saveSettings({ notify: {
-      devices_off: [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev) } })));
+    veil.querySelectorAll("[data-accn]").forEach((el) => (el.onchange = () => {
+      n.accounts_off = [...veil.querySelectorAll("[data-accn]")].filter((x) => !x.checked).map((x) => x.dataset.accn);
+    }));
+    veil.querySelectorAll("[data-dev]").forEach((el) => (el.onchange = () => {
+      n.devices_off = [...veil.querySelectorAll("[data-dev]")].filter((x) => !x.checked).map((x) => x.dataset.dev);
+    }));
     veil.querySelectorAll("[data-day]").forEach((b) => (b.onclick = () => {
       const d = Number(b.dataset.day), days = n.days.includes(d) ? n.days.filter((x) => x !== d) : [...n.days, d];
       rerender({ days });
     }));
+    veil.querySelectorAll("[data-forget]").forEach((b) => (b.onclick = async () => {
+      if (!confirm(t("forget_confirm"))) return;
+      try { this._set = await this._call("push_remove", { name: b.dataset.forget }); } catch (_) { this._toast(t("save_failed")); return; }
+      this._notifyScreen(veil, back, n);
+    }));
+    // the test uses what is on screen, saved or not
     const test = veil.querySelector("[data-test]");
     if (test) test.onclick = async () => {
-      try { const r = await this._call("notify_test"); this._toast(t(r.app + r.web ? "notif_test_sent" : "notif_test_none")); }
-      catch (_) { this._toast(t("save_failed")); }
+      try {
+        const r = await this._call("notify_test", { notify: n });
+        this._toast(t(r.app + r.web ? "notif_test_sent" : "notif_test_none"));
+        this._set = await this._call("settings"); // fresh results per device
+        this._notifyScreen(veil, back, n);
+      } catch (_) { this._toast(t("save_failed")); }
     };
+  }
+  _lastSent(last) { // "Last: 21:36" or "Failed 21:36: <reason>"
+    if (!last) return "";
+    const at = new Date(last.ts * 1000).toLocaleString(this._locale(), { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    return last.ok ? this.t("last_ok", { t: at }) : this.t("last_fail", { t: at, e: last.error.replace(/^.*?:\s*/, "").slice(0, 80) });
   }
   async _saveSettings(changes) {
     try { this._set = await this._call("settings", { changes }); this._toast(this.t("saved")); }
@@ -999,6 +1052,11 @@ class HomemailApp extends HTMLElement {
       <div class="explain" style="margin-top:-14px">${this.t("account_note")}</div>
       <div class="gtitle">${this.t("signature")}</div><div class="group"><div class="item"><textarea id="a-sig">${esc(a.signature || `${this.t("closing")}\n\n${this._set.user_name || ""}`.trimEnd())}</textarea></div></div>
       <div class="explain">${this.t("signature_note")}</div>
+      <div class="gtitle">${this.t("new_mail")}</div><div class="group"><div class="item"><span class="text"><span class="name">${
+        a.push === "on" ? this.t("push_on") : this.t("push_every", { n: Math.round((a.interval || 60) / 60) || 1 })}</span></span></div></div>
+      <div class="explain">${a.push === "on" ? this.t("push_on_note") : a.push === "unsupported" ? this.t("push_unsupported") : a.push === "error" ? this.t("push_error") : this.t("push_off_note")}</div>
+      ${this._set.is_admin ? `<div class="gtitle">${this.t("access")}</div><div class="group">${(this._set.ha_users || []).map((u) => `<label class="item"><span class="text"><span class="name">${esc(u.name)}${u.id === this._set.user_id ? ` (${this.t("you")})` : ""}</span><input type="checkbox" data-user="${esc(u.id)}"${(a.users || []).includes(u.id) ? " checked" : ""}></span></label>`).join("")}</div>
+      <div class="explain">${(a.users || []).length ? this.t("access_note") : `<span class="warn">${this.t("access_all_admins")}</span>`}</div>` : ""}
       </div></div>`;
     veil.querySelector("[data-back]").onclick = back;
     const sw = veil.querySelector("#a-color");
@@ -1008,9 +1066,12 @@ class HomemailApp extends HTMLElement {
       sw.querySelectorAll(".sw").forEach((x) => x.classList.toggle("on", x === b));
     };
     veil.querySelector("[data-save]").onclick = async () => {
+      const users = [...veil.querySelectorAll("[data-user]")].filter((x) => x.checked).map((x) => x.dataset.user);
+      if (this._set.is_admin && users.length && !users.includes(this._set.user_id) && !confirm(this.t("access_lose"))) return;
       await this._saveSettings({ accounts: { [acc]: { name: veil.querySelector("#a-name").value.trim() || a.name,
         sender: veil.querySelector("#a-sender").value.trim(),
-        color: veil.querySelector("#a-color").dataset.v, signature: veil.querySelector("#a-sig").value } } });
+        color: veil.querySelector("#a-color").dataset.v, signature: veil.querySelector("#a-sig").value,
+        ...(this._set.is_admin ? { users: [...veil.querySelectorAll("[data-user]")].filter((x) => x.checked).map((x) => x.dataset.user) } : {}) } } });
       back();
     };
   }

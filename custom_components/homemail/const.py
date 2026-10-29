@@ -16,8 +16,10 @@ OPT_SIGNATURE = "signature"
 OPT_SENT_FOLDER = "sent_folder"
 OPT_USERS = "users"
 OPT_SCAN_INTERVAL = "scan_interval"
+OPT_PUSH = "push"  # IMAP IDLE: hear about new mail at once
 
 DEFAULT_SCAN_INTERVAL = 60  # seconds
+PUSH_SCAN_INTERVAL = 900  # seconds; safety-net check while IMAP IDLE works
 
 # provider -> (imap server, imap port, smtp server, smtp port)
 PROVIDERS = {
