@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.util import dt as dt_util, slugify
 
 from . import actions
@@ -112,15 +112,23 @@ def wanted(cfg: dict[str, Any], account: str, m: dict[str, Any], now) -> bool:
 # ---------- where to send ----------
 
 def app_devices(hass: HomeAssistant, user_id: str) -> list[dict[str, str]]:
-    """Companion app devices of this user: [{name, service, os}]."""
+    """Companion app devices of this user: [{name, service, os}].
+    The notify service is named after the device as it is called now: a name you gave it in Home Assistant
+    ("iPhone Laurence") wins over the name the app registered with ("Laurence's iPhone"), so try them in that order."""
+    reg = dr.async_get(hass)
     out = []
     for e in hass.config_entries.async_entries("mobile_app"):
         if e.data.get("user_id") != user_id:
             continue
-        name = e.data.get("device_name") or e.title
-        service = f"mobile_app_{slugify(name)}"
-        if hass.services.has_service("notify", service):
-            out.append({"name": name, "service": service, "os": e.data.get("os_name") or ""})
+        names = [n for d in dr.async_entries_for_config_entry(reg, e.entry_id) for n in (d.name_by_user, d.name)]
+        names += [e.data.get("device_name"), e.title]
+        for name in names:
+            service = f"mobile_app_{slugify(name)}" if name else ""
+            if service and hass.services.has_service("notify", service):
+                out.append({"name": name, "service": service, "os": e.data.get("os_name") or ""})
+                break
+        else:
+            _LOGGER.debug("No notify service found for Companion device %s", e.title)
     return out
 
 
