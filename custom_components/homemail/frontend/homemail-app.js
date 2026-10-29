@@ -207,7 +207,7 @@ const CSS = `
 .bar { position:relative; display:flex; align-items:center; gap:4px; padding:8px 12px; padding-top:max(8px, env(safe-area-inset-top)); border-bottom:1px solid var(--line); color:var(--blue); }
 .bar .fill { flex:1; }
 .btn { border:0; background:transparent; color:var(--blue); border-radius:8px; padding:8px; cursor:pointer; display:inline-flex; align-items:center; gap:2px; font:inherit; font-size:17px; }
-.btn:hover { background:var(--fill); } .btn.on { color:#ff9f0a; } .btn[disabled] { opacity:.4; }
+@media (hover:hover) { .btn:hover { background:var(--fill); } } .btn.on { color:#ff9f0a; } .btn[disabled] { opacity:.4; }
 .btn.pill { border-radius:20px; padding:8px 14px; background:var(--fill); color:var(--primary-text-color, #000); }
 .back { display:none; }
 /* sidebar panel: HA-style top bar (menu button with notification dot + title), like other HA screens */
@@ -222,7 +222,7 @@ const CSS = `
 :host([panel]) .head, :host([panel]) .bar { padding-top:6px; } :host([panel]) .sbar { padding-top:10px; }
 :host([panel]) .fab, :host([panel]) .toast { bottom:22px; }
 /* stand-alone web app: no settings (they live in Home Assistant itself) */
-:host([standalone]) #mb .row1 { display:none; } :host([standalone]) #mb .head h1 { margin-top:8px; }
+
 .menu { position:absolute; right:12px; top:100%; z-index:5; background:var(--card); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,.25); overflow:hidden; min-width:220px; }
 .menu button { display:flex; width:100%; align-items:center; gap:10px; border:0; background:transparent; color:var(--primary-text-color, #000); font:inherit; font-size:16px; padding:13px 16px; cursor:pointer; text-align:left; border-bottom:1px solid var(--line); }
 .menu button:last-child { border-bottom:0; }

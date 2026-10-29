@@ -5,6 +5,9 @@
 - **Your own name for a device** under Settings → Notifications → *Where* (tap the pencil). Only a label in the app: Home Assistant keeps using the real name, so nothing breaks.
 
 **Fixed**
+- **Settings were missing in the web app** (the button on Mailboxes was hidden there).
+- **Grey band at the top of the web app** on the iPhone: the colour behind the status bar now follows the screen that is open.
+- Buttons kept a grey background after a tap on a phone.
 - **Copy button** for the web app address did nothing in the Companion app and on some iPhones: it now falls back to the older way of copying, and says so when you have to copy by hand.
 - After an update, browsers sometimes kept the old app files: they are now asked for by version number.
 
