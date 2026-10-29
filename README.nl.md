@@ -76,6 +76,7 @@ Iedereen stelt dit voor zichzelf in onder **Instellingen → Meldingen** in Home
 | Instelling | Wat het doet |
 |---|---|
 | Meldingen | Alles aan of uit |
+| Knoppen in de melding | Gelezen, Archiveer, Verwijder en Beantwoord (met tekstveld) direct vanuit de melding in de Companion-app; op Android Gelezen, Archiveer en Beantwoord |
 | Accounts | Welke van je mailaccounts melden |
 | Welke mail | Alle mail, of alleen afzenders van je VIP-lijst. Plus een lijst afzenders die nooit melden (een adres of een heel domein, één per regel) |
 | Dagen en stille uren | Alleen op de dagen die je kiest, en stil tussen twee tijden (bijvoorbeeld 22:00 tot 07:00) |
@@ -103,6 +104,13 @@ Goed om te weten:
 - Een account kan met meerdere gebruikers gedeeld worden en een gebruiker kan meerdere accounts hebben.
 - Zodra je gebruikers voor een account kiest, hebben alleen zij toegang. Beheerders worden niet automatisch toegevoegd, dus kies jezelf er ook bij als je het account zelf wilt gebruiken.
 - Persoonlijke instellingen (standaardaccount, blind kopie naar mezelf, afbeeldingen laden) gelden per gebruiker. Handtekening en kleur horen bij het account. Nieuwe berichten krijgen een standaardafsluiting met de naam van de ingelogde Home Assistant-gebruiker, tot je zelf een handtekening instelt.
+
+## Als er iets mis is
+
+- **Verkeerd wachtwoord of nieuwe server:** Instellingen → Apparaten en diensten → Home-mail → ⋮ → *Opnieuw configureren*. Weigert de mailserver het wachtwoord, dan vraagt Home Assistant zelf om een nieuw.
+- **Instellingen → Reparaties** meldt het als alle beheerders een account kunnen lezen, of als *Nieuwe mail direct* blijft mislukken.
+- **Diagnose downloaden** (⋮ bij het account) geeft een bestand zonder wachtwoorden of adressen dat helpt bij een foutmelding.
+- **Meldingen van de web-app gestopt?** Open de web-app één keer: die meldt zich zelf opnieuw aan.
 
 ## Toegang van buitenaf
 
