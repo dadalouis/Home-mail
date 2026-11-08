@@ -395,7 +395,8 @@ async def ws_read(hass, connection, msg) -> None:
 @websocket_api.websocket_command({
     vol.Required("type"): "homemail/action",
     vol.Required("account"): str,
-    vol.Required("uid"): vol.Coerce(str),
+    vol.Optional("uid"): vol.Coerce(str),
+    vol.Optional("uids"): vol.All([vol.Coerce(str)], vol.Length(min=1, max=200)),  # several messages of one folder at once
     vol.Required("action"): vol.In(mail.ACTIONS),
     vol.Optional("folder", default="INBOX"): str,
 })
@@ -406,14 +407,19 @@ async def ws_action(hass, connection, msg) -> None:
     except Unauthorized:
         connection.send_error(msg["id"], "unauthorized", "unauthorized")
         return
-    r = await _run(hass, connection, msg, mail.action, account_cfg(e), msg["uid"], msg["action"], msg["folder"])
+    uids = msg.get("uids") or ([msg["uid"]] if msg.get("uid") else [])
+    if not uids or not all(u.isdigit() for u in uids):
+        connection.send_error(msg["id"], "invalid_format", "uid or uids needed")
+        return
+    r = await _run(hass, connection, msg, mail.action, account_cfg(e), ",".join(uids), msg["action"], msg["folder"])
     if r is not None:
         connection.send_result(msg["id"], r)
         act = msg["action"]
-        if act in ("archive", "delete", "inbox"):
-            e.runtime_data.forget(msg["folder"], msg["uid"], gone=True)
-        else:
-            e.runtime_data.forget(msg["folder"], msg["uid"], **({"seen": act == "seen"} if act in ("seen", "unseen") else {"flagged": act == "flag"}))
+        for uid in uids:
+            if act in ("archive", "delete", "inbox"):
+                e.runtime_data.forget(msg["folder"], uid, gone=True)
+            else:
+                e.runtime_data.forget(msg["folder"], uid, **({"seen": act == "seen"} if act in ("seen", "unseen") else {"flagged": act == "flag"}))
         await e.runtime_data.async_request_refresh()
 
 

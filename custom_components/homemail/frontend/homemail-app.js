@@ -22,6 +22,7 @@ IC.archive_folder = IC.archivefolder;
 const T = {
   en: {
     mailboxes: "Mailboxes", settings: "Settings", all_inboxes: "All Inboxes", loading: "Loading…", load_failed: "Loading failed",
+    select: "Select", done: "Done", select_all: "Select all", select_none: "Select none", n_selected: "{n} selected", moved_n: "{n} messages moved",
     updated: "Updated just now", new_message: "New message", refresh: "Refresh", search: "Search", unread_only: "Unread only",
     inbox: "Inbox", drafts: "Drafts", sent: "Sent", junk: "Junk", trash: "Trash", archive: "Archive", all: "All Mail",
     nothing_found: "Nothing found", no_unread: "No unread messages", no_messages: "No messages", no_selection: "No message selected",
@@ -84,6 +85,7 @@ const T = {
   },
   nl: {
     mailboxes: "Postbussen", settings: "Instellingen", all_inboxes: "Alle inkomende", loading: "Laden…", load_failed: "Laden mislukt",
+    select: "Selecteer", done: "Klaar", select_all: "Selecteer alles", select_none: "Deselecteer alles", n_selected: "{n} geselecteerd", moved_n: "{n} berichten verplaatst",
     updated: "Zojuist bijgewerkt", new_message: "Nieuw bericht", refresh: "Verversen", search: "Zoek", unread_only: "Alleen ongelezen",
     inbox: "Inkomend", drafts: "Concepten", sent: "Verstuurd", junk: "Spam", trash: "Prullenmand", archive: "Archief", all: "Alle berichten",
     nothing_found: "Niets gevonden", no_unread: "Geen ongelezen berichten", no_messages: "Geen berichten", no_selection: "Geen bericht geselecteerd",
@@ -189,6 +191,11 @@ const CSS = `
 .edge { display:none; position:absolute; left:0; top:0; bottom:0; width:24px; z-index:3; touch-action:none; }
 .row { position:relative; display:block; width:100%; text-align:left; border:0; background:var(--card); color:inherit; font:inherit; padding:10px 16px 10px 30px; cursor:pointer; touch-action:pan-y; transition:transform .2s ease; user-select:none; -webkit-user-select:none; }
 .row.drag { transition:none; }
+.sel-on .row { padding-left:44px; } .sel-on .dot { left:44px; } .sel-on .arrow { left:44px; }
+.pick { position:absolute; left:14px; top:50%; margin-top:-11px; width:22px; height:22px; border-radius:50%; border:1.5px solid var(--grey); box-sizing:border-box; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
+.row.picked .pick { background:var(--blue); border-color:var(--blue); }
+.selbar { display:none; align-items:center; justify-content:space-around; gap:4px; padding:8px 12px; padding-bottom:max(8px, env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:var(--card); color:var(--blue); }
+.sel-on .selbar { display:flex; } .selbar .btn[disabled] { opacity:.4; } .selbar .cnt { color:var(--grey); font-size:14px; }
 .row.sel { background:var(--blue); color:#fff; }
 .row.sel .from, .row.sel .t, .row.sel .subj, .row.sel .pv { color:#fff; }
 .dot { position:absolute; left:11px; top:19px; width:10px; height:10px; border-radius:50%; background:var(--blue); }
@@ -256,7 +263,7 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .item input[type=checkbox]::after { content:""; position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.2); transition:left .2s; }
 .item input[type=checkbox]:checked { background:#34c759; } .item input[type=checkbox]:checked::after { left:22px; }
 .item select, .item input[type=text], .item input[type=email], .item input[type=password], .item input[type=number] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; text-align:right; min-width:0; flex:1; }
-.item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 inherit; background:transparent; color:inherit; }
+.item textarea { flex:1; border:0; outline:0; resize:vertical; min-height:110px; padding:12px 0; font:16px/1.4 -apple-system,system-ui,sans-serif; background:transparent; color:inherit; }
 .item textarea#a-sig { min-height:240px; }
 .item textarea.nl { min-height:70px; padding:10px 0; }
 .item input[type=time] { border:0; outline:0; background:transparent; color:var(--grey); font:inherit; font-size:17px; }
@@ -301,6 +308,7 @@ class HomemailApp extends HTMLElement {
     this._search = ""; this._msgs = []; this._sel = null; this._open = null; this._busy = false; this._errors = [];
     this._set = { accounts: {}, default: "", images: true }; this._mb = null; this._contacts = [];
     this._unreadOnly = load("homemail_unread_only", false);
+    this._selecting = false; this._picked = new Set();
     this._closed = load("homemail_closed", {}); // collapsed accounts on the Mailboxes screen
     this._hidden = load("homemail_hidden_folders", {}); // web app: folders not shown, per account
     // a property set before the upgrade would hide the setter
@@ -391,12 +399,14 @@ class HomemailApp extends HTMLElement {
           <div class="pane" id="lp">
             <div class="edge" id="lpedge"></div>
             <div class="head"><div class="row1"><button class="btn" id="tomb">${svg(IC.back)}${this.t("mailboxes")}</button><span class="fill"></span>
+                <button class="btn" id="select">${this.t("select")}</button>
                 <button class="btn" id="refresh" title="${this.t("refresh")}">${svg(IC.refresh)}</button>
                 <button class="btn" id="new" title="${this.t("new_message")}">${svg(IC.compose)}</button></div>
               <h1 id="title">${esc(this._viewName())}</h1>
               <label class="search">${svg(IC.search)}<input id="search" type="search" placeholder="${this.t("search")}" enterkeyhint="search"></label></div>
             <div class="tabs"><button class="tab${this._unreadOnly ? " on" : ""}" id="filter">${svg(IC.filter)}${this.t("unread_only")}</button></div>
             <div class="rows" id="rows"></div>
+            <div class="selbar" id="selbar"></div>
           </div>
         </section>
         <section class="reader" id="reader"></section>
@@ -406,6 +416,8 @@ class HomemailApp extends HTMLElement {
     $("search").onkeydown = (e) => { if (e.key === "Enter") { this._search = e.target.value.trim(); this._load(); } };
     $("search").oninput = (e) => { if (!e.target.value && this._search) { this._search = ""; this._load(); } };
     $("refresh").onclick = () => this._load();
+    $("select").onclick = () => this._select(!this._selecting);
+    $("selbar").onclick = (e) => { const b = e.target.closest("[data-sel]"); if (b && !b.disabled) this._selAct(b.dataset.sel); };
     $("new").onclick = $("new2").onclick = () => this._compose("new");
     $("tomb").onclick = () => this._toMailboxes();
     $("settings").onclick = () => this._settings();
@@ -430,6 +442,7 @@ class HomemailApp extends HTMLElement {
       if (e.target.closest("[data-older]")) { this._older = true; this._msgs = []; this._load(); return; }
       const b = e.target.closest("[data-swipe]");
       if (b) { const m = this._msgs[+b.closest(".swipe").dataset.i]; this._swipeAction(m, b.dataset.swipe); return; }
+      if (this._selecting) { const r = e.target.closest(".row"); if (r) this._pick(this._msgs[+r.closest(".swipe").dataset.i]); return; }
       if (this._swipeOpen) { this._closeSwipe(); return; }
       const r = e.target.closest(".row"); if (r) this._openMsg(this._msgs[+r.closest(".swipe").dataset.i]);
     };
@@ -460,6 +473,7 @@ class HomemailApp extends HTMLElement {
 
   // ---------- Mailboxes ----------
   _toMailboxes() {
+    if (this._selecting) this._select(false);
     this._sel = null; this._closeReader();
     this._root.getElementById("app").classList.add("mb");
     if (!this._mb) this._root.getElementById("mbbody").innerHTML = `<div class="empty">${this.t("loading")}</div>`;
@@ -522,7 +536,7 @@ class HomemailApp extends HTMLElement {
   _swipes(list) {
     let st = null;
     list.addEventListener("pointerdown", (e) => {
-      const row = e.target.closest(".row"); if (!row || e.button > 0) return;
+      const row = e.target.closest(".row"); if (!row || e.button > 0 || this._selecting) return;
       if (this._swipeOpen && this._swipeOpen !== row) this._closeSwipe();
       st = { x: e.clientX, y: e.clientY, row, base: row === this._swipeOpen ? -160 : 0, active: false };
     });
@@ -671,7 +685,8 @@ class HomemailApp extends HTMLElement {
       <div class="swipe" data-i="${i}">
         <div class="over">${svg(IC.seen)}${m.seen ? this.t("unread") : this.t("read")}</div>
         <div class="under">${under}</div>
-        <div class="row${m.seen ? " read" : ""}${this._sel === this._key(m) ? " sel" : ""}" role="button" tabindex="0">
+        <div class="row${m.seen ? " read" : ""}${this._sel === this._key(m) && !this._selecting ? " sel" : ""}${this._picked.has(this._key(m)) ? " picked" : ""}" role="button" tabindex="0">
+          ${this._selecting ? `<span class="pick">${this._picked.has(this._key(m)) ? "✓" : ""}</span>` : ""}
           ${m.seen ? (m.answered ? `<span class="arrow">${svg(IC.reply)}</span>` : "") : '<span class="dot"></span>'}
           <div class="r1"><span class="from">${multi ? `<span class="acc" style="background:${esc(this._color(m.account))}"></span>` : ""}${esc(m.name)}</span>
             <span class="mark">${m.flagged ? svg(IC.flag).replace('fill="none"', 'fill="currentColor"') : ""}${m.attachment ? svg(IC.clip) : ""}</span><span class="t">${esc(this._time(m.date))}</span></div>
@@ -909,6 +924,55 @@ class HomemailApp extends HTMLElement {
     if (a === "seen") act = m.seen ? "unseen" : "seen";
     if (a === "delete" && this._inTrash() && !confirm(this.t("delete_permanently"))) return;
     return this._do(m, act);
+  }
+
+  // ---------- selecting several messages ----------
+  _select(on) {
+    this._selecting = on; this._picked = new Set(); this._closeSwipe();
+    this._root.getElementById("app").classList.toggle("sel-on", on);
+    this._root.getElementById("select").textContent = this.t(on ? "done" : "select");
+    this._renderList(); this._renderSelbar();
+  }
+  _pick(m) {
+    if (!m) return;
+    const k = this._key(m);
+    this._picked.has(k) ? this._picked.delete(k) : this._picked.add(k);
+    this._renderList(); this._renderSelbar();
+  }
+  _renderSelbar() {
+    const bar = this._root.getElementById("selbar"); if (!bar) return;
+    const n = this._picked.size, all = n && n === this._msgs.length, d = n ? "" : " disabled";
+    const out = this._view.kind === "junk" || this._view.kind === "trash";
+    const unseen = this._msgs.filter((m) => this._picked.has(this._key(m))).some((m) => m.seen);
+    bar.innerHTML = `<button class="btn" data-sel="all">${this.t(all ? "select_none" : "select_all")}</button>
+      <span class="cnt">${n ? this.t("n_selected", { n }) : ""}</span>
+      <button class="btn" data-sel="${unseen ? "unseen" : "seen"}" title="${this.t(unseen ? "mark_unread" : "mark_read")}"${d}>${svg(IC.seen)}</button>
+      ${out ? `<button class="btn" data-sel="inbox" title="${this.t("move_inbox")}"${d}>${svg(IC.inbox)}</button>` : `<button class="btn" data-sel="archive" title="${this.t("archive_it")}"${d}>${svg(IC.archive)}</button>`}
+      <button class="btn" data-sel="delete" title="${this.t("delete")}"${d}>${svg(IC.trashcan)}</button>`;
+  }
+  async _selAct(a) {
+    if (a === "all") {
+      this._picked = this._picked.size === this._msgs.length ? new Set() : new Set(this._msgs.map((m) => this._key(m)));
+      this._renderList(); this._renderSelbar(); return;
+    }
+    const chosen = this._msgs.filter((m) => this._picked.has(this._key(m)));
+    if (!chosen.length) return;
+    if (a === "delete" && this._inTrash() && !confirm(this.t("delete_permanently"))) return;
+    const away = a === "archive" || a === "delete" || a === "inbox";
+    const groups = new Map(); // one call per account and folder
+    for (const m of chosen) { const g = m.account + "\n" + (m.folder || "INBOX"); (groups.get(g) || groups.set(g, []).get(g)).push(m); }
+    if (away) {
+      this._msgs = this._msgs.filter((m) => !this._picked.has(this._key(m)));
+      if (this._sel && this._picked.has(this._sel)) { this._sel = null; this._closeReader(); }
+    } else for (const m of chosen) m.seen = a === "seen";
+    this._select(false);
+    try {
+      for (const g of groups.values()) await this._call("action", { account: g[0].account, uids: g.map((m) => m.uid), folder: g[0].folder || "INBOX", action: a });
+      if (away) this._toast(a === "delete" && this._inTrash() ? this.t("deleted_perm") : this.t("moved_n", { n: chosen.length }));
+    } catch (e) {
+      this._errors = [this.t("action_failed", { e: this._errText(e) })];
+      this._load(true);
+    }
   }
 
   async _do(m, act) { // action on a message (list swipe or reader toolbar)

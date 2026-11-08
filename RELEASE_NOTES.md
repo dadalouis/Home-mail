@@ -1,3 +1,13 @@
+### Home-mail 0.3.0-beta.3
+
+This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it.
+
+**New**
+- **Select several messages** in the web app and panel: tap *Select*, pick the messages and delete, archive or mark them read/unread in one go (in Junk and Trash: back to the inbox). Notifications of those messages disappear on the Companion app too.
+
+**Fixed**
+- **The iPhone zoomed in** on the login screen of the web app (and on some text fields elsewhere): every field now has at least the text size iOS needs to stay put.
+
 ### Home-mail 0.3.0-beta.2
 
 This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it.
