@@ -108,7 +108,6 @@ async def _reply(hass: HomeAssistant, entry, user, uid: str, text: str) -> None:
     m = co.cache.get((entry.entry_id, "INBOX", uid))
     if m is None:  # not in memory any more (restart): read the headers again
         m = await hass.async_add_executor_job(mail.read_message, cfg, uid, False, "INBOX")
-        m["address"] = m.get("reply_to") or m.get("address")
     _, all_settings = await _store(hass)
     mine = {**USER_DEFAULTS, **all_settings.get(user.id, {})}
     signature = entry.options.get(OPT_SIGNATURE) or ""
@@ -117,7 +116,7 @@ async def _reply(hass: HomeAssistant, entry, user, uid: str, text: str) -> None:
     bcc = [cfg["email"]] if mine["bcc_me"] else []
     sender = entry.options.get(OPT_SENDER) or mine["sender"]
     await hass.async_add_executor_job(
-        mail.send, cfg, sender, [m["address"]], [], reply_subject(m.get("subject") or ""), body,
+        mail.send, cfg, sender, [m.get("reply_to") or m["address"]], [], reply_subject(m.get("subject") or ""), body,
         uid, "reply", sent_folder, bcc, "INBOX", (hass.config.language or "en")[:2])
     sent.append(now)
 

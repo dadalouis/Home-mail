@@ -211,8 +211,9 @@ HEAD = "(UID RFC822.SIZE BODY.PEEK[]<0.60000>)"
 def summary(account: str, uid: str, raw: bytes, size: int = 0) -> dict[str, Any]:
     msg = email.message_from_bytes(raw)
     name, address = sender(msg)
+    reply_to = [a.lower() for _, a in getaddresses([header(msg, "Reply-To")]) if a]
     return {
-        "account": account, "uid": uid, "name": name, "address": address,
+        "account": account, "uid": uid, "name": name, "address": address, "reply_to": reply_to[0] if reply_to else address,
         "subject": header(msg, "Subject"), "date": date_iso(msg), "message_id": message_id(msg),
         "preview": preview(msg), "size": size, "attachment": msg.get_content_type() == "multipart/mixed",
     }

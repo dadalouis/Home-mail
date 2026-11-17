@@ -48,6 +48,15 @@ def test_only_sent_notifications_are_remembered(monkeypatch):
     assert co.notified == ["6"] and len(hass.events) == 2
 
 
+def test_read_in_another_app_takes_the_notification_away(monkeypatch):
+    hass = Hass()
+    co = make(hass)
+    co.notified = ["8", "9"]
+    monkeypatch.setattr(coordinator.mail, "no_longer_unseen", lambda cfg, uids: ["8"])
+    asyncio.run(co._clear_read_elsewhere())
+    assert co.notified == ["9"] and len(hass.tasks) == 1  # one "clear" for the message read in Apple Mail
+
+
 def test_notified_survives_a_restart():
     hass = Hass()
     co = make(hass)

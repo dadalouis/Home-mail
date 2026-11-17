@@ -150,9 +150,7 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
             _LOGGER.debug("Checking read messages failed: %s", err)
             return
         for uid in done:
-            self.notified.remove(uid)
-            self._save_notified()
-            self.forget("INBOX", uid, seen=True)
+            self.forget("INBOX", uid, seen=True)  # takes it out of `notified` and the notification off the devices
 
     async def _fire_new(self, first_uid: int, unread: int) -> None:
         try:

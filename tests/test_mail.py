@@ -169,3 +169,9 @@ def test_hidden_folders_are_not_counted(monkeypatch):
     out = {f["folder"]: f for f in mail.mailboxes({}, None, ["Nieuwsbrieven", "INBOX"])}
     assert '"Nieuwsbrieven"' not in imap.status_for and out["Nieuwsbrieven"]["hidden"] is True
     assert out["INBOX"]["unread"] == 2 and out["Facturen"]["total"] == 9  # the inbox is never hidden
+
+
+def test_summary_keeps_reply_to():
+    raw = b"From: Shop <shop@example.com>\r\nReply-To: help@example.com\r\nSubject: Hi\r\n\r\nBody"
+    assert mail.summary("A", "1", raw)["reply_to"] == "help@example.com"
+    assert mail.summary("A", "1", raw.replace(b"Reply-To: help@example.com\r\n", b""))["reply_to"] == "shop@example.com"
