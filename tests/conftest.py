@@ -62,6 +62,22 @@ class _Coordinator:  # minimal DataUpdateCoordinator: enough to build the Home-m
 
 
 _stub("homeassistant.exceptions", ConfigEntryAuthFailed=type("ConfigEntryAuthFailed", (Exception,), {}))
+
+
+class _Store:
+    saved = {}  # key -> data, like the .storage folder
+
+    def __init__(self, hass, version, key):
+        self.key = key
+
+    async def async_load(self):
+        return _Store.saved.get(self.key)
+
+    def async_delay_save(self, data_func, delay=0):
+        _Store.saved[self.key] = data_func()
+
+
+_stub("homeassistant.helpers.storage", Store=_Store)
 _stub("homeassistant.helpers.dispatcher", async_dispatcher_send=lambda *a: None)
 _stub("homeassistant.helpers.update_coordinator", DataUpdateCoordinator=_Coordinator,
       UpdateFailed=type("UpdateFailed", (Exception,), {}))

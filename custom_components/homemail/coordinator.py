@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from . import mail, notify
@@ -53,8 +54,18 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
         self.bodies: OrderedDict[tuple[str, str], dict] = OrderedDict()  # (folder, uid) -> read_message result
         self._prefetching = False
         self.notified: list[str] = []  # UIDs we sent a notification for and that may still be on a device
+        self._store = Store(hass, 1, f"{DOMAIN}.notified.{entry.entry_id}")  # kept over restarts of Home Assistant
         self.idle = None  # IdleWatcher when IMAP IDLE (push) is on for this account
         self._interval = self.update_interval
+
+    async def async_load_notified(self) -> None:
+        """After the first refresh: take the UIDs back that still had a notification before the restart."""
+        saved = await self._store.async_load() or {}
+        if self.data and saved.get("uidvalidity") == self.data["uidvalidity"]:  # other UIDs mean another mailbox
+            self.notified = [str(u) for u in saved.get("uids", [])][-50:]
+
+    def _save_notified(self) -> None:
+        self._store.async_delay_save(lambda: {"uidvalidity": (self.data or {}).get("uidvalidity"), "uids": self.notified}, 5)
 
     def set_push(self, ok: bool) -> None:
         """IMAP IDLE works (or stopped working): check less (or as often as set) on top of it."""
@@ -77,6 +88,7 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
         # only a message we notified about has a notification to take away
         if folder == "INBOX" and (gone or flags.get("seen")) and uid in self.notified:
             self.notified.remove(uid)
+            self._save_notified()
             self.hass.async_create_task(notify.async_clear(self.hass, self.entry, uid))
         if gone:
             self.bodies.pop((folder, uid), None)
@@ -139,6 +151,7 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
             return
         for uid in done:
             self.notified.remove(uid)
+            self._save_notified()
             self.forget("INBOX", uid, seen=True)
 
     async def _fire_new(self, first_uid: int, unread: int) -> None:
@@ -160,5 +173,6 @@ class HomemailCoordinator(DataUpdateCoordinator[dict[str, int]]):
             try:
                 if await notify.async_notify_new(self.hass, self.entry, m, unread):
                     self.notified = [*self.notified, m["uid"]][-50:]
+                    self._save_notified()
             except Exception as err:  # noqa: BLE001
                 _LOGGER.warning("Notifications for new mail failed: %s", err)

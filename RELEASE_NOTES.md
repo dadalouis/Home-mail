@@ -1,3 +1,32 @@
+### Home-mail 0.3.0
+
+Thank you to everyone who reported problems and thought along. Home-mail 0.3.0 is the first stable version with everything from the 0.3.0 betas.
+
+**New**
+- **Undo send**, like Apple Mail: after *Send* the message waits a few seconds in Home Assistant (10 by default; Settings → *Undo send*: off, 5, 10 or 30 seconds). Tap **Undo** and it opens again, attachments included. Closing the app does not stop it from being sent. If Home Assistant restarts in those seconds, the message is lost.
+- **The original is visible when you reply or forward**: it is shown below your text while you type, as in Apple Mail. Replying or forwarding from another account than the one that received the message now includes the original as well (it was left out before).
+- **Select several messages**: tap *Select*, pick messages and delete, archive or mark them read/unread in one go (in Junk and Trash: back to the inbox).
+- **A separate login for sending (SMTP)**: some providers use another username and password for sending than for reading. Add them when adding an account (provider *Other*) or under *Change account*; left empty, sending uses the normal login. (Thanks, B3rt.)
+- **Devices** in Settings: every Companion app and web app of yours, each with its own screen: a name of your own, notifications on or off, which accounts notify there and, for a web app, how much mail it shows, which folders, and *Forget*.
+- **Own login screen** in the web app with two-step verification, and a **notifications screen right after logging in**.
+- **How much mail the web app shows** (a period of days, weeks, months, years or all) and **which folders** it shows; its red number only counts unread mail of that period.
+- **Per device: which accounts notify**, with recognisable names ("iPhone").
+- **Version number** at the bottom of Settings.
+
+**Fixed**
+- **"Unknown error" when saving an account's settings** on Home Assistant 2026.11 (Settings → Devices & services → the cogwheel of an account → Submit). Home Assistant no longer allows the way Home-mail kept its repair notice up to date. (Thanks, Martin and B3rt.)
+- **Notifications that were not taken away after a restart of Home Assistant** when the message was read, on Companion apps.
+- **Web app notifications that stopped arriving on the iPhone**: Home-mail sent invisible pushes that made iOS stop delivering. Web apps now only get visible notifications, sent with high priority.
+- A new web app registration got no notifications until Home Assistant restarted; a Companion device that was renamed got none either.
+- The iPhone zoomed in on the web app's login screen and some text fields.
+- Settings missing in the web app, a grey band at the top on the iPhone, buttons that kept a grey background after a tap, a copy button that did nothing on some iPhones, and browsers that kept old app files after an update.
+
+**Faster**
+- All Inboxes loads every account at the same time; only the newest messages of a folder are asked for; message summaries in memory have a limit.
+
+**After updating**
+- Restart Home Assistant. Open the web app on your phone once so it picks up its settings.
+
 ### Home-mail 0.3.0-beta.3
 
 This is a beta. In HACS, turn on **Show beta versions** for Home-mail to get it.

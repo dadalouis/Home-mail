@@ -30,6 +30,8 @@ const T = {
     delete_permanently: "Delete permanently?", back: "Back", flag: "Flag", mark_unread: "Mark as unread", mark_read: "Mark as read",
     move_inbox: "Move to Inbox", archive_it: "Archive", delete_it: "Delete", delete_perm: "Delete permanently", reply: "Reply",
     reply_all: "Reply All", forward: "Forward", to: "To", cc: "Cc", from: "From", subject: "Subject", cancel: "Cancel",
+    undo_send: "Undo send", undo_off: "Off", undo_s: "{n} seconds", undo: "Undo", sending_toast: "Sending…", too_late: "Already sent.",
+    quote_head: "On {date}, {name} wrote:", quote_head_fwd: "Forwarded message:",
     send: "Send", attachment: "attachment", quote_forward: "The original message (with attachments) is included below.",
     quote_reply: "The original message is quoted below.", bcc_on: "Blind copy to yourself is on.", discard: "Discard draft?",
     need_recipient: "Enter at least one recipient.", no_subject_ok: "Send without a subject?", sending: "Sending…",
@@ -93,6 +95,8 @@ const T = {
     delete_permanently: "Definitief verwijderen?", back: "Terug", flag: "Vlag", mark_unread: "Markeer als ongelezen", mark_read: "Markeer als gelezen",
     move_inbox: "Naar Inkomend", archive_it: "Archiveer", delete_it: "Verwijder", delete_perm: "Definitief verwijderen", reply: "Beantwoord",
     reply_all: "Allen beantwoorden", forward: "Stuur door", to: "Aan", cc: "Cc", from: "Van", subject: "Onderwerp", cancel: "Annuleer",
+    undo_send: "Verzenden ongedaan maken", undo_off: "Uit", undo_s: "{n} seconden", undo: "Ongedaan maken", sending_toast: "Wordt verzonden…", too_late: "Al verzonden.",
+    quote_head: "Op {date} schreef {name}:", quote_head_fwd: "Doorgestuurd bericht:",
     send: "Verstuur", attachment: "bijlage", quote_forward: "Het originele bericht (met bijlagen) wordt eronder meegestuurd.",
     quote_reply: "Het originele bericht wordt eronder geciteerd.", bcc_on: "Blinde kopie naar jezelf staat aan.", discard: "Concept weggooien?",
     need_recipient: "Vul minstens één ontvanger in.", no_subject_ok: "Versturen zonder onderwerp?", sending: "Versturen…",
@@ -287,8 +291,11 @@ iframe { flex:1; width:100%; border:0; background:#fff; min-height:0; }
 .field { display:flex; align-items:center; gap:8px; padding:9px 16px; border-bottom:1px solid var(--line); font-size:16px; }
 .field label { color:var(--grey); flex:none; min-width:74px; }
 .field input, .field select { flex:1; border:0; outline:0; background:transparent; color:var(--primary-text-color, #000); font:inherit; font-size:16px; min-width:0; }
+.qhead { flex:none; padding:6px 16px 4px; font-size:13px; color:var(--grey); border-top:1px solid var(--line); }
+.sheet iframe.quote { flex:none; height:34%; width:100%; border:0; border-left:2px solid var(--blue); margin-left:16px; width:calc(100% - 16px); background:transparent; }
 .sheet textarea.body { flex:1; border:0; outline:0; resize:none; padding:12px 16px; font:16px/1.45 -apple-system,system-ui,sans-serif; background:transparent; color:var(--primary-text-color, #000); }
 .foot { padding:8px 16px; font-size:13px; color:var(--grey); border-top:1px solid var(--line); }
+.toastbtn { border:0; background:transparent; color:#64b5ff; font:inherit; font-weight:600; margin-left:14px; padding:0; cursor:pointer; }
 .toast { position:absolute; left:50%; bottom:max(24px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:20; background:rgba(30,30,30,.9); color:#fff; border-radius:20px; padding:9px 18px; font-size:15px; pointer-events:none; }
 @media (max-width:760px) {
   .left { width:100%; border-right:0; }
@@ -797,10 +804,10 @@ class HomemailApp extends HTMLElement {
     this._contactsAt = Date.now();
     try { this._contacts = (await this._call("contacts")).contacts || []; } catch (_) { this._contactsAt = 0; }
   }
-  _compose(mode, m = null) {
+  _compose(mode, m = null, draft = null) { // draft: a message that was taken back (undo send), to edit again
     const accs = Object.keys(this._set.accounts || {});
     if (!accs.length) { this._toast(this.t("no_access")); return; }
-    const account = m?.account || (this._view.account !== "all" ? this._view.account : this._set.default) || accs[0];
+    const account = draft?.account || m?.account || (this._view.account !== "all" ? this._view.account : this._set.default) || accs[0];
     const own = accs.map((a) => (this._set.accounts[a].address || "").toLowerCase());
     const sig = (a) => this._set.accounts[a]?.signature || `${this.t("closing")}\n\n${this._set.user_name || ""}`.trimEnd();
     let to = [], cc = [], subject = "";
@@ -809,6 +816,7 @@ class HomemailApp extends HTMLElement {
       if (mode === "reply_all") cc = [...(m.to_addresses || []), ...(m.cc_addresses || [])].filter((a) => a && !own.includes(a.toLowerCase()) && !to.includes(a));
       subject = /^re:/i.test(m.subject || "") ? m.subject : "Re: " + (m.subject || "");
     } else if (m) subject = /^(fwd?|doorst):/i.test(m.subject || "") ? m.subject : "Fwd: " + (m.subject || "");
+    if (draft) { to = draft.to; cc = draft.cc; subject = draft.subject; }
     const veil = document.createElement("div");
     veil.className = "veil";
     const title = mode === "new" ? this.t("new_message") : mode === "forward" ? this.t("forward") : this.t("reply");
@@ -822,6 +830,7 @@ class HomemailApp extends HTMLElement {
         <div class="field"><label>${this.t("subject")}:</label><input id="c-subj" value="${esc(subject)}"></div>
         <div class="field attrow" id="c-atts"><button type="button" class="add" id="c-add">${svg(IC.clip)} ${this.t("attach_add")}</button><input type="file" id="c-file" multiple hidden></div>
         <textarea class="body" id="c-body"></textarea>
+        ${m && mode !== "new" && m.html ? `<div class="qhead">${esc(mode === "forward" ? this.t("quote_head_fwd") : this.t("quote_head", { date: this._time(m.date), name: m.name || m.address || "" }))}</div><iframe class="quote" id="c-quote" sandbox="" referrerpolicy="no-referrer"></iframe>` : ""}
         <div class="foot" id="c-foot">${m ? (mode === "forward" ? this.t("quote_forward") : this.t("quote_reply")) : ""}${this._set.bcc_me ? " " + this.t("bcc_on") : ""}</div>
         <datalist id="c-known"></datalist>
       </div>`;
@@ -835,8 +844,12 @@ class HomemailApp extends HTMLElement {
     };
     fillKnown();
     this._loadContacts().then(fillKnown);
+    const quote = $("#c-quote");
+    if (quote) quote.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${CSP_OFF}">
+      <style>html{background:transparent;color:#8e8e93}body{margin:0;padding:8px 16px 12px;font:14px/1.4 -apple-system,system-ui,sans-serif;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}</style>
+      </head><body>${m.html}</body></html>`;
     const body = $("#c-body");
-    body.value = "\n\n" + sig(account);
+    body.value = draft ? draft.body : "\n\n" + sig(account);
     let prev = account;
     $("#c-from").onchange = (e) => { // the signature follows the account
       const s0 = sig(prev), s1 = sig(e.target.value);
@@ -847,7 +860,7 @@ class HomemailApp extends HTMLElement {
     setTimeout(() => { (to.length ? body : $("#c-to")).focus(); body.setSelectionRange(0, 0); }, 50);
     const start = body.value;
     // attachments: sent to Home Assistant piece by piece as soon as they are picked, then referenced when sending
-    const atts = [];
+    const atts = draft ? [...draft.atts] : [];
     const drawAtts = () => {
       veil.querySelectorAll("#c-atts .chip").forEach((c) => c.remove());
       atts.forEach((a, i) => $("#c-atts").insertBefore(Object.assign(document.createElement("span"), { className: "chip",
@@ -877,6 +890,7 @@ class HomemailApp extends HTMLElement {
       }
       drawAtts();
     };
+    if (draft) drawAtts();
     $("#c-add").onclick = () => $("#c-file").click();
     $("#c-file").onchange = (e) => { [...e.target.files].forEach(upload); e.target.value = ""; };
     veil.querySelector("[data-o=cancel]").onclick = () => {
@@ -894,26 +908,45 @@ class HomemailApp extends HTMLElement {
       if (atts.some((a) => !a.done)) { foot.innerHTML = `<span class="error">${this.t("attach_busy")}</span>`; return; }
       d.attachments = atts.map((a) => a.id);
       if (!d.subject && !confirm(this.t("no_subject_ok"))) return;
-      if (m && m.account === d.account) { d.original_uid = m.uid; d.folder = m.folder || "INBOX"; }
-      else if (m && mode === "forward") { d.mode = "new"; } // another account cannot fetch the original
+      if (m) { d.original_uid = m.uid; d.folder = m.folder || "INBOX"; d.original_account = m.account; }
       btn.disabled = true; foot.textContent = this.t("sending");
+      let res;
       try {
-        await this._call("send", d);
+        res = await this._call("send", d);
       } catch (err) {
         btn.disabled = false; foot.innerHTML = `<span class="error">${esc(this.t("not_sent", { e: this._errText(err) }))}</span>`;
         return;
       }
       veil.remove();
-      if (m && mode !== "forward") { m.answered = true; const r = this._msgs.find((x) => this._key(x) === this._key(m)); if (r) r.answered = true; this._renderList(); }
-      this._toast(this.t("sent_ok"));
+      const markAnswered = () => {
+        if (m && mode !== "forward") { m.answered = true; const r = this._msgs.find((x) => this._key(x) === this._key(m)); if (r) r.answered = true; this._renderList(); }
+      };
+      if (!res?.pending) { markAnswered(); this._toast(this.t("sent_ok")); return; }
+      // Home Assistant holds the message for a few seconds: until then it can be taken back and edited again
+      let undone = false;
+      this._toast(this.t("sending_toast"), {
+        label: this.t("undo"),
+        run: async () => {
+          try { await this._call("send_cancel", { pending: res.pending }); } catch (_) { this._toast(this.t("too_late")); return; }
+          undone = true;
+          this._compose(mode, m, { account: d.account, to: d.to, cc: d.cc, subject: d.subject, body: d.body, atts });
+        },
+      }, res.delay * 1000);
+      setTimeout(() => { if (!undone) { markAnswered(); this._toast(this.t("sent_ok")); } }, res.delay * 1000 + 300);
     };
   }
 
-  _toast(text) {
+  _toast(text, action = null, ms = 2200) { // action = { label, run }: a button in the toast (undo send)
     const t = document.createElement("div");
     t.className = "toast"; t.textContent = text;
+    if (action) {
+      const b = document.createElement("button");
+      b.className = "toastbtn"; b.textContent = action.label;
+      b.onclick = () => { t.remove(); action.run(); };
+      t.appendChild(b);
+    }
     this._root.getElementById("app").appendChild(t);
-    setTimeout(() => t.remove(), 2200);
+    setTimeout(() => t.remove(), ms);
   }
 
   // ---------- actions ----------
@@ -1024,6 +1057,7 @@ class HomemailApp extends HTMLElement {
           <div class="gtitle">${this.t("composing")}</div><div class="group">
             <label class="item"><span class="text"><span class="name">${this.t("bcc_me")}</span><input type="checkbox" data-opt="bcc_me"${s.bcc_me ? " checked" : ""}></span></label>
             <label class="item"><span class="text"><span class="name">${this.t("load_images")}</span><input type="checkbox" data-opt="images"${s.images !== false ? " checked" : ""}></span></label>
+            <label class="item"><span class="text"><span class="name">${this.t("undo_send")}</span><select data-opt="undo_send">${[0, 5, 10, 30].map((n) => `<option value="${n}"${n === (s.undo_send ?? 10) ? " selected" : ""}>${n ? this.t("undo_s", { n }) : this.t("undo_off")}</option>`).join("")}</select></span></label>
             <label class="item"><span class="text"><span class="name">${this.t("default_account")}</span><select data-opt="default">${accs.map((a) => `<option value="${esc(a)}"${a === s.default ? " selected" : ""}>${esc(s.accounts[a].name)}</option>`).join("")}</select></span></label>
           </div>
           <div class="explain">${this.t("settings_note")}</div>

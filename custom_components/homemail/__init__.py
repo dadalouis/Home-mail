@@ -46,6 +46,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: HomemailConfigEntry) -> bool:
     coordinator = HomemailCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_load_notified()
     entry.runtime_data = coordinator
     if entry.options.get(OPT_PUSH, True):
         coordinator.idle = IdleWatcher(coordinator)
