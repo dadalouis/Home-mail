@@ -12,6 +12,8 @@ CONF_IMAP_SERVER = "imap_server"
 CONF_IMAP_PORT = "imap_port"
 CONF_SMTP_SERVER = "smtp_server"
 CONF_SMTP_PORT = "smtp_port"
+CONF_SMTP_USER = "smtp_user"  # only when sending needs another login than reading
+CONF_SMTP_PASSWORD = "smtp_password"
 
 OPT_NAME = "name"  # description of the account in the app ("Gmail", "Work"), like iOS "Description"
 OPT_SENDER = "sender_name"  # your name as recipients see it, like iOS "Name"

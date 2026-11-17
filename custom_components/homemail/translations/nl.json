@@ -16,7 +16,9 @@
           "imap_server": "IMAP-server",
           "imap_port": "IMAP-poort",
           "smtp_server": "SMTP-server",
-          "smtp_port": "SMTP-poort"
+          "smtp_port": "SMTP-poort",
+          "smtp_user": "SMTP-gebruikersnaam (alleen als verzenden een andere login heeft)",
+          "smtp_password": "SMTP-wachtwoord (alleen als verzenden een andere login heeft)"
         }
       },
       "account_app": {
@@ -45,6 +47,8 @@
           "imap_port": "IMAP-poort",
           "smtp_server": "SMTP-server",
           "smtp_port": "SMTP-poort",
+          "smtp_user": "SMTP-gebruikersnaam (leeg: zelfde als het adres)",
+          "smtp_password": "Nieuw SMTP-wachtwoord (optioneel)",
           "password": "Nieuw wachtwoord of app-wachtwoord (optioneel)"
         }
       }

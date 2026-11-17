@@ -16,7 +16,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from . import mail, notify
 from .const import (
-    CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_SMTP_PORT, CONF_SMTP_SERVER, DEFAULT_SCAN_INTERVAL, DOMAIN,
+    CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_SMTP_PASSWORD, CONF_SMTP_PORT, CONF_SMTP_SERVER, CONF_SMTP_USER, DEFAULT_SCAN_INTERVAL, DOMAIN,
     EVENT_NEW_MAIL, OPT_NAME, OPT_SCAN_INTERVAL, PUSH_SCAN_INTERVAL, SIGNAL_UPDATE,
 )
 
@@ -32,6 +32,7 @@ def account_cfg(entry: ConfigEntry) -> dict[str, Any]:
         "email": d["email"], "password": d["password"],
         "imap_server": d[CONF_IMAP_SERVER], "imap_port": d[CONF_IMAP_PORT],
         "smtp_server": d[CONF_SMTP_SERVER], "smtp_port": d[CONF_SMTP_PORT],
+        "smtp_user": d.get(CONF_SMTP_USER) or d["email"], "smtp_password": d.get(CONF_SMTP_PASSWORD) or d["password"],
     }
 
 

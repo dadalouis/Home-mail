@@ -1,6 +1,6 @@
 """IMAP/SMTP logic for Home-mail. Plain blocking Python (stdlib only); always run in an executor.
 
-`cfg` is a dict with: email, password, imap_server, imap_port, smtp_server, smtp_port.
+`cfg` is a dict with: email, password, imap_server, imap_port, smtp_server, smtp_port; optional smtp_user, smtp_password (when sending has its own login).
 UIDs are real IMAP UIDs (stable), returned as strings. Nothing is stored or logged.
 """
 
@@ -590,7 +590,7 @@ def test_account(cfg: dict) -> str | None:
     try:
         s = _smtp(cfg, timeout=20)
         try:
-            s.login(cfg["email"], cfg["password"])
+            s.login(cfg.get("smtp_user") or cfg["email"], cfg.get("smtp_password") or cfg["password"])
         finally:
             try:
                 s.quit()
@@ -699,7 +699,7 @@ def send(cfg: dict, sender_name: str, to: list[str], cc: list[str], subject: str
 
     s = _smtp(cfg)
     try:
-        s.login(cfg["email"], cfg["password"])
+        s.login(cfg.get("smtp_user") or cfg["email"], cfg.get("smtp_password") or cfg["password"])
         s.send_message(msg, from_addr=own, to_addrs=list(to) + list(cc or []) + list(bcc or []))  # BCC not in headers
     finally:
         try:

@@ -66,6 +66,20 @@ def test_send_with_attachments(monkeypatch):
     assert msg["Subject"] == "Hello"
 
 
+def test_send_logs_in_with_own_smtp_credentials(monkeypatch):
+    logins = []
+
+    class S(FakeSmtp):
+        def login(self, *a):
+            logins.append(a)
+
+    monkeypatch.setattr(mail, "_smtp", lambda cfg: S())
+    base = {"email": "me@example.com", "password": "imap-pw"}
+    mail.send(base, "Me", ["a@example.com"], [], "Hi", "Body", None, "new", None)
+    mail.send({**base, "smtp_user": "relay", "smtp_password": "smtp-pw"}, "Me", ["a@example.com"], [], "Hi", "Body", None, "new", None)
+    assert logins == [("me@example.com", "imap-pw"), ("relay", "smtp-pw")]
+
+
 class ListImap:
     """A folder with UIDs 101..100+n: answers FETCH by position and FETCH of headers by UID."""
 

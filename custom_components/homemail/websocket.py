@@ -22,7 +22,7 @@ from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.helpers.storage import Store
 from homeassistant.util.json import load_json
 
-from . import mail, notify
+from . import issues, mail, notify
 from .const import (
     COLORS, DOMAIN, MAX_SENT_PER_HOUR, OPT_COLOR, OPT_NAME, OPT_SENDER, OPT_SENT_FOLDER, OPT_SIGNATURE, OPT_USERS,
     PROVIDERS, SIGNAL_UPDATE, URL_FILES, VERSION,
@@ -172,6 +172,7 @@ async def ws_settings(hass, connection, msg) -> None:
                 opts[OPT_USERS] = [x for x in w["users"] if isinstance(x, str) and x in known]
             # options are applied live by the app; no reload needed
             hass.config_entries.async_update_entry(entry, options=opts)
+            issues.check_access(hass, entry)  # no update listener: HA does not allow one next to OptionsFlowWithReload
     connection.send_result(msg["id"], await _settings(hass, user))
 
 
@@ -591,6 +592,8 @@ async def ws_contacts(hass, connection, msg) -> None:
     vol.Optional("imap_port"): int,
     vol.Optional("smtp_server"): str,
     vol.Optional("smtp_port"): int,
+    vol.Optional("smtp_user"): str,
+    vol.Optional("smtp_password"): str,
 })
 @websocket_api.async_response
 async def ws_add_account(hass, connection, msg) -> None:
@@ -598,7 +601,7 @@ async def ws_add_account(hass, connection, msg) -> None:
     flow = hass.config_entries.flow
     step = await flow.async_init(DOMAIN, context={"source": "user"})
     step = await flow.async_configure(step["flow_id"], {"provider": msg["provider"]})
-    fields = {k: msg[k] for k in ("name", "email", "password", "imap_server", "imap_port", "smtp_server", "smtp_port") if k in msg}
+    fields = {k: msg[k] for k in ("name", "email", "password", "imap_server", "imap_port", "smtp_server", "smtp_port", "smtp_user", "smtp_password") if k in msg}
     try:
         step = await flow.async_configure(step["flow_id"], fields)
     except vol.Invalid as err:
@@ -609,6 +612,7 @@ async def ws_add_account(hass, connection, msg) -> None:
         entry = step["result"]
         # whoever adds the account owns it: only they may use it until they share it
         hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_USERS: [connection.user.id]})
+        issues.check_access(hass, entry)
         connection.send_result(msg["id"], {"ok": True, "account": entry.entry_id})
         return
     if step["type"] == "form":
