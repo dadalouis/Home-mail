@@ -8,21 +8,23 @@ import base64
 import binascii
 import logging
 import re
+import secrets
 import time
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant.auth.models import User
-from homeassistant.components import websocket_api
+from homeassistant.components import persistent_notification, websocket_api
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.helpers.storage import Store
 from homeassistant.util.json import load_json
 
-from . import mail, notify
+from . import issues, mail, notify
 from .const import (
     COLORS, DOMAIN, MAX_SENT_PER_HOUR, OPT_COLOR, OPT_NAME, OPT_SENDER, OPT_SENT_FOLDER, OPT_SIGNATURE, OPT_USERS,
     PROVIDERS, SIGNAL_UPDATE, URL_FILES, VERSION,
@@ -37,7 +39,8 @@ MAX_TOTAL = 25 * 1024 * 1024  # all attachments of one message (providers refuse
 CTYPE = re.compile(r"^[\w.+-]+/[\w.+-]+$")
 HTML5_REGISTRATIONS = "html5_push_registrations.conf"  # where the html5 integration keeps web push registrations
 SINCE = vol.All(str, vol.Match(r"^(\d{4}-\d{2}-\d{2})?$"))  # a web app's period: only mail from this day on ("" = all)
-USER_DEFAULTS = {"sender": "", "default": "", "bcc_me": False, "images": True}
+USER_DEFAULTS = {"sender": "", "default": "", "bcc_me": False, "images": True, "undo_send": 10}
+UNDO_CHOICES = (0, 5, 10, 30)  # seconds a sent message waits in Home Assistant, so it can still be taken back
 
 
 class Unauthorized(Exception):
@@ -45,7 +48,7 @@ class Unauthorized(Exception):
 
 
 def async_register_websocket(hass: HomeAssistant) -> None:
-    for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_contacts, ws_add_account, ws_subscribe,
+    for handler in (ws_settings, ws_list, ws_mailboxes, ws_read, ws_action, ws_send, ws_send_cancel, ws_contacts, ws_add_account, ws_subscribe,
                     ws_push_register, ws_push_check, ws_web_device, ws_push_remove, ws_notify_test, ws_attachment, ws_upload, ws_upload_remove):
         websocket_api.async_register_command(hass, handler)
 
@@ -155,6 +158,8 @@ async def ws_settings(hass, connection, msg) -> None:
         for k in ("bcc_me", "images"):
             if k in changes:
                 mine[k] = bool(changes[k])
+        if str(changes.get("undo_send")) in {str(c) for c in UNDO_CHOICES}:
+            mine["undo_send"] = int(changes["undo_send"])
         if isinstance(changes.get("notify"), dict):
             mine["notify"] = notify.clean(changes["notify"], mine.get("notify") or {})
         all_settings[user.id] = mine
@@ -172,6 +177,7 @@ async def ws_settings(hass, connection, msg) -> None:
                 opts[OPT_USERS] = [x for x in w["users"] if isinstance(x, str) and x in known]
             # options are applied live by the app; no reload needed
             hass.config_entries.async_update_entry(entry, options=opts)
+            issues.check_access(hass, entry)  # no update listener: HA does not allow one next to OptionsFlowWithReload
     connection.send_result(msg["id"], await _settings(hass, user))
 
 
@@ -436,6 +442,7 @@ def _addresses(x) -> list[str]:
     vol.Optional("subject", default=""): str,
     vol.Optional("body", default=""): str,
     vol.Optional("original_uid"): vol.Any(None, vol.Coerce(str)),
+    vol.Optional("original_account"): str,  # the account the original is in (may differ from the sending one)
     vol.Optional("mode", default="new"): vol.In(["new", "reply", "reply_all", "forward"]),
     vol.Optional("folder", default="INBOX"): str,
     vol.Optional("language", default="en"): str,
@@ -474,13 +481,61 @@ async def ws_send(hass, connection, msg) -> None:
             connection.send_error(msg["id"], "invalid", "attachment_missing")
             return
         atts.append((up["name"], up["type"], bytes(up["data"])))
-    r = await _run(hass, connection, msg, mail.send, cfg, sender, to, cc, msg["subject"], msg["body"],
-                   msg.get("original_uid"), msg["mode"], sent_folder, bcc, msg["folder"], msg["language"], atts)
-    if r is not None:
+    original_cfg = None
+    if msg.get("original_uid") and msg.get("original_account") not in (None, msg["account"]):
+        try:
+            original_cfg = account_cfg(_account(hass, connection, msg["original_account"]))
+        except Unauthorized:
+            connection.send_error(msg["id"], "unauthorized", "unauthorized")
+            return
+    args = (cfg, sender, to, cc, msg["subject"], msg["body"], msg.get("original_uid"), msg["mode"], sent_folder, bcc,
+            msg["folder"], msg["language"], atts, original_cfg)
+
+    def forget_uploads() -> None:
         for fid in msg["attachments"]:
             uploads.pop((connection.user.id, fid), None)
+
+    delay = settings.get("undo_send", USER_DEFAULTS["undo_send"])
+    if delay in UNDO_CHOICES and delay:
+        # hold it for a few seconds, like Apple Mail: send_cancel takes it back (attachments stay until it really goes)
+        pending: dict = hass.data[DOMAIN].setdefault("pending_sends", {})
+        pid = secrets.token_hex(6)
+
+        async def fire(_now) -> None:
+            if pending.pop(pid, None) is None:
+                return
+            try:
+                await hass.async_add_executor_job(mail.send, *args)
+            except Exception as err:  # noqa: BLE001  the app is long gone: tell the user in Home Assistant
+                persistent_notification.async_create(
+                    hass, f"“{msg['subject'] or '(no subject)'}” to {', '.join(to)} was not sent: {_err(err)}",
+                    title="Home-mail", notification_id=f"homemail_send_{pid}")
+                return
+            forget_uploads()
+
+        pending[pid] = {"user": connection.user.id, "cancel": async_call_later(hass, delay, fire)}
+        sent.append(now)
+        connection.send_result(msg["id"], {"pending": pid, "delay": delay})
+        return
+    r = await _run(hass, connection, msg, mail.send, *args)
+    if r is not None:
+        forget_uploads()
         sent.append(now)
         connection.send_result(msg["id"], r)
+
+
+@websocket_api.websocket_command({vol.Required("type"): "homemail/send_cancel", vol.Required("pending"): str})
+@callback
+def ws_send_cancel(hass, connection, msg) -> None:
+    """Take a message back that still waits to be sent (the app then opens it again for editing)."""
+    pending: dict = hass.data[DOMAIN].get("pending_sends", {})
+    p = pending.get(msg["pending"])
+    if not p or p["user"] != connection.user.id:
+        connection.send_error(msg["id"], "too_late", "already_sent")
+        return
+    del pending[msg["pending"]]
+    p["cancel"]()
+    connection.send_result(msg["id"], {"ok": True})
 
 
 @websocket_api.websocket_command({
@@ -591,6 +646,8 @@ async def ws_contacts(hass, connection, msg) -> None:
     vol.Optional("imap_port"): int,
     vol.Optional("smtp_server"): str,
     vol.Optional("smtp_port"): int,
+    vol.Optional("smtp_user"): str,
+    vol.Optional("smtp_password"): str,
 })
 @websocket_api.async_response
 async def ws_add_account(hass, connection, msg) -> None:
@@ -598,7 +655,7 @@ async def ws_add_account(hass, connection, msg) -> None:
     flow = hass.config_entries.flow
     step = await flow.async_init(DOMAIN, context={"source": "user"})
     step = await flow.async_configure(step["flow_id"], {"provider": msg["provider"]})
-    fields = {k: msg[k] for k in ("name", "email", "password", "imap_server", "imap_port", "smtp_server", "smtp_port") if k in msg}
+    fields = {k: msg[k] for k in ("name", "email", "password", "imap_server", "imap_port", "smtp_server", "smtp_port", "smtp_user", "smtp_password") if k in msg}
     try:
         step = await flow.async_configure(step["flow_id"], fields)
     except vol.Invalid as err:
@@ -609,6 +666,7 @@ async def ws_add_account(hass, connection, msg) -> None:
         entry = step["result"]
         # whoever adds the account owns it: only they may use it until they share it
         hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_USERS: [connection.user.id]})
+        issues.check_access(hass, entry)
         connection.send_result(msg["id"], {"ok": True, "account": entry.entry_id})
         return
     if step["type"] == "form":

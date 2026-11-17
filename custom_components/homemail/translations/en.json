@@ -16,7 +16,9 @@
           "imap_server": "IMAP server",
           "imap_port": "IMAP port",
           "smtp_server": "SMTP server",
-          "smtp_port": "SMTP port"
+          "smtp_port": "SMTP port",
+          "smtp_user": "SMTP username (only if sending uses another login)",
+          "smtp_password": "SMTP password (only if sending uses another login)"
         }
       },
       "account_app": {
@@ -45,6 +47,8 @@
           "imap_port": "IMAP port",
           "smtp_server": "SMTP server",
           "smtp_port": "SMTP port",
+          "smtp_user": "SMTP username (empty: same as the address)",
+          "smtp_password": "New SMTP password (optional)",
           "password": "New password or app password (optional)"
         }
       }

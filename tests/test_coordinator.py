@@ -46,3 +46,19 @@ def test_only_sent_notifications_are_remembered(monkeypatch):
     monkeypatch.setattr(notify, "async_notify_new", notify_new)
     asyncio.run(co._fire_new(5, 2))
     assert co.notified == ["6"] and len(hass.events) == 2
+
+
+def test_notified_survives_a_restart():
+    hass = Hass()
+    co = make(hass)
+    co.data = {"uidvalidity": 5}
+    co.notified = ["8", "9"]
+    co._save_notified()
+    again = make(Hass())
+    again.data = {"uidvalidity": 5}
+    asyncio.run(again.async_load_notified())
+    assert again.notified == ["8", "9"]
+    other = make(Hass())
+    other.data = {"uidvalidity": 6}  # mailbox renumbered: those UIDs mean nothing any more
+    asyncio.run(other.async_load_notified())
+    assert other.notified == []

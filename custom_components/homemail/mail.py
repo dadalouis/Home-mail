@@ -1,6 +1,6 @@
 """IMAP/SMTP logic for Home-mail. Plain blocking Python (stdlib only); always run in an executor.
 
-`cfg` is a dict with: email, password, imap_server, imap_port, smtp_server, smtp_port.
+`cfg` is a dict with: email, password, imap_server, imap_port, smtp_server, smtp_port; optional smtp_user, smtp_password (when sending has its own login).
 UIDs are real IMAP UIDs (stable), returned as strings. Nothing is stored or logged.
 """
 
@@ -590,7 +590,7 @@ def test_account(cfg: dict) -> str | None:
     try:
         s = _smtp(cfg, timeout=20)
         try:
-            s.login(cfg["email"], cfg["password"])
+            s.login(cfg.get("smtp_user") or cfg["email"], cfg.get("smtp_password") or cfg["password"])
         finally:
             try:
                 s.quit()
@@ -625,13 +625,13 @@ QUOTE = {
 def send(cfg: dict, sender_name: str, to: list[str], cc: list[str], subject: str, body: str,
          original_uid: str | None, mode: str, sent_folder: str | None, bcc: list[str] | None = None,
          folder: str = "INBOX", language: str = "en",
-         attachments: list[tuple[str, str, bytes]] | None = None) -> dict[str, Any]:
-    """Send via SMTP (same login as IMAP). reply/reply_all/forward quote the original (from `folder`).
+         attachments: list[tuple[str, str, bytes]] | None = None, original_cfg: dict | None = None) -> dict[str, Any]:
+    """Send via SMTP. reply/reply_all/forward quote the original (from `folder` of `original_cfg`, default: the sending account).
     sent_folder: None = server keeps a copy itself (Gmail), "AUTO" = folder with \\Sent, else that folder."""
     words = QUOTE.get((language or "en")[:2], QUOTE["en"])
     orig = None
     if original_uid:
-        m = connect(cfg, folder)
+        m = connect(original_cfg or cfg, folder)
         try:
             _, res = m.uid("FETCH", str(original_uid), "(BODY.PEEK[])")
             raw = next((r[1] for r in res or [] if isinstance(r, tuple)), None)
@@ -699,7 +699,7 @@ def send(cfg: dict, sender_name: str, to: list[str], cc: list[str], subject: str
 
     s = _smtp(cfg)
     try:
-        s.login(cfg["email"], cfg["password"])
+        s.login(cfg.get("smtp_user") or cfg["email"], cfg.get("smtp_password") or cfg["password"])
         s.send_message(msg, from_addr=own, to_addrs=list(to) + list(cc or []) + list(bcc or []))  # BCC not in headers
     finally:
         try:

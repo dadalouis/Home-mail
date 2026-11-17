@@ -46,13 +46,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: HomemailConfigEntry) -> bool:
     coordinator = HomemailCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_load_notified()
     entry.runtime_data = coordinator
     if entry.options.get(OPT_PUSH, True):
         coordinator.idle = IdleWatcher(coordinator)
         coordinator.idle.start()
         entry.async_on_unload(coordinator.idle.stop)
     issues.check_access(hass, entry)
-    entry.async_on_unload(entry.add_update_listener(_options_changed))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if not hass.data[DOMAIN]["panel"]:
         await panel_custom.async_register_panel(
@@ -76,11 +76,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: HomemailConfigEntry) ->
         frontend.async_remove_panel(hass, PANEL_URL)
         hass.data[DOMAIN]["panel"] = False
     return ok
-
-
-async def _options_changed(hass: HomeAssistant, entry: HomemailConfigEntry) -> None:
-    """Options changed in the app (no reload needed): keep the repair notice about access up to date."""
-    issues.check_access(hass, entry)
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: HomemailConfigEntry) -> None:

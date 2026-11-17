@@ -13,7 +13,7 @@ from homeassistant.helpers import selector
 
 from . import mail
 from .const import (
-    COLORS, CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_PROVIDER, CONF_SMTP_PORT, CONF_SMTP_SERVER,
+    COLORS, CONF_IMAP_PORT, CONF_IMAP_SERVER, CONF_PROVIDER, CONF_SMTP_PASSWORD, CONF_SMTP_PORT, CONF_SMTP_SERVER, CONF_SMTP_USER,
     DEFAULT_SCAN_INTERVAL, DOMAIN, OPT_COLOR, OPT_NAME, OPT_SCAN_INTERVAL, OPT_SENDER, OPT_SENT_FOLDER,
     OPT_PUSH, OPT_SIGNATURE, OPT_USERS, PROVIDERS,
 )
@@ -84,6 +84,10 @@ class HomemailConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SMTP_SERVER: user_input.get(CONF_SMTP_SERVER, smtp).strip().lower(),
                 CONF_SMTP_PORT: int(user_input.get(CONF_SMTP_PORT, smtp_port)),
             }
+            if user_input.get(CONF_SMTP_USER, "").strip():
+                data[CONF_SMTP_USER] = user_input[CONF_SMTP_USER].strip()
+            if user_input.get(CONF_SMTP_PASSWORD):
+                data[CONF_SMTP_PASSWORD] = user_input[CONF_SMTP_PASSWORD]
             await self.async_set_unique_id(address)
             self._abort_if_unique_id_configured()
             error = await self.hass.async_add_executor_job(mail.test_account, data)
@@ -109,6 +113,8 @@ class HomemailConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_IMAP_PORT, default=993): int,
                 vol.Required(CONF_SMTP_SERVER): str,
                 vol.Required(CONF_SMTP_PORT, default=465): int,
+                vol.Optional(CONF_SMTP_USER): str,
+                vol.Optional(CONF_SMTP_PASSWORD): selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
             })
         return self.async_show_form(
             step_id="account_app" if self._provider in APP_PASSWORD_HELP else "account", data_schema=self.add_suggested_values_to_schema(vol.Schema(schema), user_input or {}),
@@ -156,6 +162,12 @@ class HomemailConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_SMTP_SERVER: user_input[CONF_SMTP_SERVER].strip(), CONF_SMTP_PORT: int(user_input[CONF_SMTP_PORT])}
             if user_input.get("password"):
                 data["password"] = _clean_password(d.get(CONF_PROVIDER, ""), user_input["password"])
+            if user_input.get(CONF_SMTP_USER) is not None:  # empty = sending uses the normal login again
+                data.pop(CONF_SMTP_USER, None)
+                if user_input[CONF_SMTP_USER].strip():
+                    data[CONF_SMTP_USER] = user_input[CONF_SMTP_USER].strip()
+            if user_input.get(CONF_SMTP_PASSWORD):
+                data[CONF_SMTP_PASSWORD] = user_input[CONF_SMTP_PASSWORD]
             error = await self.hass.async_add_executor_job(mail.test_account, data)
             if error == "invalid_auth_imap" and user_input.get("password") and _needs_app_password(d.get(CONF_PROVIDER, ""), data["password"]):
                 error = "app_password_required"
@@ -171,6 +183,8 @@ class HomemailConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_SMTP_SERVER, default=d[CONF_SMTP_SERVER]): str,
                 vol.Required(CONF_SMTP_PORT, default=d[CONF_SMTP_PORT]): vol.Coerce(int),
                 vol.Optional("password"): selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
+                vol.Optional(CONF_SMTP_USER, description={"suggested_value": d.get(CONF_SMTP_USER, "")}): str,
+                vol.Optional(CONF_SMTP_PASSWORD): selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
             }),
             errors=errors, description_placeholders={"email": d["email"]},
         )
