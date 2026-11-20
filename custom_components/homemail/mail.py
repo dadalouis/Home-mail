@@ -326,7 +326,11 @@ def read_message(cfg: dict, uid: str, mark: bool, folder: str = "INBOX") -> dict
                 cid[cid_header] = f"data:{kind};base64,{base64.b64encode(data).decode()}"
         if filename:
             data = p.get_payload(decode=True) or b""
-            attachments.append({"name": str(make_header(decode_header(filename))), "size": len(data), "type": kind})
+            attachments.append({"name": str(make_header(decode_header(filename))), "size": len(data), "type": kind,
+                                "cid": cid_header if kind.startswith("image/") else ""})
+    for a in attachments:  # logos and pictures shown in the message itself (cid:) are not attachments to the reader
+        c = a.pop("cid")
+        a["inline"] = bool(c and html_part and ("cid:" + c).lower() in html_part.lower())
     if html_part:
         h = html_part
         for pattern, repl in DANGEROUS:

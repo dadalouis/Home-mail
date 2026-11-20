@@ -31,6 +31,7 @@ const T = {
     move_inbox: "Move to Inbox", archive_it: "Archive", delete_it: "Delete", delete_perm: "Delete permanently", reply: "Reply",
     reply_all: "Reply All", forward: "Forward", to: "To", cc: "Cc", from: "From", subject: "Subject", cancel: "Cancel",
     undo_send: "Undo send", undo_off: "Off", undo_s: "{n} seconds", undo: "Undo", sending_toast: "Sending…", too_late: "Already sent.",
+    more_atts: "{n} more",
     quote_head: "On {date}, {name} wrote:", quote_head_fwd: "Forwarded message:",
     send: "Send", attachment: "attachment", quote_forward: "The original message (with attachments) is included below.",
     quote_reply: "The original message is quoted below.", bcc_on: "Blind copy to yourself is on.", discard: "Discard draft?",
@@ -96,6 +97,7 @@ const T = {
     move_inbox: "Naar Inkomend", archive_it: "Archiveer", delete_it: "Verwijder", delete_perm: "Definitief verwijderen", reply: "Beantwoord",
     reply_all: "Allen beantwoorden", forward: "Stuur door", to: "Aan", cc: "Cc", from: "Van", subject: "Onderwerp", cancel: "Annuleer",
     undo_send: "Verzenden ongedaan maken", undo_off: "Uit", undo_s: "{n} seconden", undo: "Ongedaan maken", sending_toast: "Wordt verzonden…", too_late: "Al verzonden.",
+    more_atts: "nog {n}",
     quote_head: "Op {date} schreef {name}:", quote_head_fwd: "Doorgestuurd bericht:",
     send: "Verstuur", attachment: "bijlage", quote_forward: "Het originele bericht (met bijlagen) wordt eronder meegestuurd.",
     quote_reply: "Het originele bericht wordt eronder geciteerd.", bcc_on: "Blinde kopie naar jezelf staat aan.", discard: "Concept weggooien?",
@@ -243,6 +245,7 @@ const CSS = `
 .mhead .subject { font-size:19px; font-weight:700; margin-top:8px; }
 .att { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .att span, .att button { display:inline-flex; align-items:center; gap:5px; font-size:13px; background:var(--fill); border:0; color:inherit; font-family:inherit; border-radius:8px; padding:5px 9px; } .att .ic { width:14px; height:14px; }
+.att button { cursor:pointer; max-width:100%; min-width:0; } .att .an { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; } .att .as { color:var(--grey); flex:none; } .att .more { color:var(--blue); }
 .att button { cursor:pointer; } .att button:disabled { opacity:.6; }
 .attrow { flex-wrap:wrap; } .attrow .chip { display:inline-flex; align-items:center; gap:6px; font-size:13px; background:var(--fill); border-radius:8px; padding:5px 9px; }
 .attrow .chip b { font-weight:400; color:var(--grey); } .attrow .chip .x { border:0; background:transparent; color:var(--grey); font-size:15px; padding:0 0 0 2px; cursor:pointer; }
@@ -755,7 +758,11 @@ class HomemailApp extends HTMLElement {
   _renderReader() {
     const el = this._root.getElementById("reader"), m = this._open;
     if (!m) { el.innerHTML = `<div class="empty">${this.t("no_selection")}</div>`; return; }
-    const att = (m.attachments || []).map((b, i) => `<button type="button" data-att="${i}">${svg(IC.clip)}${esc(b.name || this.t("attachment"))} · ${this._size(b.size)}</button>`).join("");
+    // pictures shown in the message itself (logos in a signature) are not listed; long lists fold up after 3
+    const real = (m.attachments || []).map((b, i) => [b, i]).filter(([b]) => !b.inline);
+    const shown = this._attAll === this._key(m) ? real : real.slice(0, 3);
+    const att = shown.map(([b, i]) => `<button type="button" data-att="${i}">${svg(IC.clip)}<span class="an">${esc(b.name || this.t("attachment"))}</span><span class="as">${this._size(b.size)}</span></button>`).join("")
+      + (real.length > shown.length ? `<button type="button" class="more" data-attmore>${this.t("more_atts", { n: real.length - shown.length })}</button>` : "");
     const ready = !m.loading && !m.error;
     const out = this._view.kind === "junk" || this._view.kind === "trash";
     el.innerHTML = `
@@ -778,6 +785,7 @@ class HomemailApp extends HTMLElement {
     el.querySelectorAll("[data-a]").forEach((b) => (b.onclick = () => this._toolbar(b.dataset.a)));
     el.querySelector("#reply").onclick = (e) => { e.stopPropagation(); this._replyMenu(el.querySelector(".bar")); };
     el.querySelectorAll("[data-att]").forEach((b) => (b.onclick = () => this._attachment(m, Number(b.dataset.att), b)));
+    const more = el.querySelector("[data-attmore]"); if (more) more.onclick = () => { this._attAll = this._key(m); this._renderReader(); };
     const frame = el.querySelector("#frame");
     if (frame) {
       const csp = this._set.images === false ? CSP_OFF : CSP_ON;

@@ -175,3 +175,23 @@ def test_summary_keeps_reply_to():
     raw = b"From: Shop <shop@example.com>\r\nReply-To: help@example.com\r\nSubject: Hi\r\n\r\nBody"
     assert mail.summary("A", "1", raw)["reply_to"] == "help@example.com"
     assert mail.summary("A", "1", raw.replace(b"Reply-To: help@example.com\r\n", b""))["reply_to"] == "shop@example.com"
+
+
+def test_logo_in_signature_is_not_an_attachment(monkeypatch):
+    from email.message import EmailMessage
+    msg = EmailMessage()
+    msg["From"], msg["Subject"] = "shop@example.com", "Polis"
+    msg.set_content("text")
+    msg.add_alternative('<p>Hi</p><img src="cid:logo1">', subtype="html")
+    msg.get_payload()[1].add_related(b"PNG", maintype="image", subtype="png", cid="<logo1>", filename="image001.png")
+    msg.add_attachment(b"%PDF", maintype="application", subtype="pdf", filename="polis.pdf")
+    raw = msg.as_bytes()
+
+    class M:
+        def uid(self, *a):
+            return "OK", [(b"1 (UID 1 BODY[]", raw)]
+
+    monkeypatch.setattr(mail, "connect", lambda *a, **k: M())
+    monkeypatch.setattr(mail, "close", lambda m: None)
+    atts = mail.read_message({}, "1", False)["attachments"]
+    assert [(a["name"], a["inline"]) for a in atts] == [("image001.png", True), ("polis.pdf", False)]
